@@ -349,6 +349,9 @@ sub __check_cached {
     if (defined $cache_directory) {
         $cache_filename = $self->__cache_filename($origfile);
         if (defined $cache_filename) {
+            if ($self->{opt}{cache_verbose}) {
+                print "process: reading $cache_filename\n";
+            }
             $cached = $self->__decode_from_file($cache_filename);
             if (defined $cached) {
                 $hash_previous = $cached->{file_hash};
