@@ -96,10 +96,14 @@ The --separator default is the tabulator.
 
 The default is to recurse through use/no/require/do statements,
 use --norecurse to not to.
+
+The --summary (default: on) turns on summary report at the end.
+The --processverbose turns on display on processing progress.
+The --cacheverbose turns on verbose cache access.
 __EOU__
 }
 
-my %Opt = ( separator => "\t", recurse => 1, report_title => 1 );
+my %Opt = ( separator => "\t", recurse => 1, report_title => 1, summary => 1 );
 
 help() unless GetOptions('files' => \$Opt{files},
                          'subs' => \$Opt{subs},
