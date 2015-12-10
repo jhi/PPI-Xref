@@ -1,6 +1,6 @@
 PPI::Xref is a Perl module for generating cross-references of Perl code.
 
-You do need the PPI installed (https://search.cpan.org/perldoc?PPI).
+You do need PPI and Sereal installed.
 
 At the moment, sub definitions are detected, and use/no/require/do are
 recursively followed.  You can query things like the subs defined and
