@@ -11,8 +11,8 @@ my $ME = basename($0);
 use Getopt::Long;
 Getopt::Long::Configure(qw[no_auto_abbrev]);
 
-sub usage {
-    die <<__EOU__;
+sub short_help_string {
+    return <<__EOU__;
 $ME: Usage:
 $ME [--files|--subs|--packages|--modules] ...
 $ME [--subs_files|--packages_files] ...
@@ -28,7 +28,17 @@ $ME --cache_directory=dir
 $ME [--process_verbose|--cache_verbose|--summary]
 $ME [--separator=s|--column|--finish]
 $ME --recurse|--norecurse
-$ME [--help|--usage]
+$ME [--help|--longhelp]
+__EOU__
+}
+
+sub help {
+    die short_help_string();
+}
+
+sub long_help {
+    print short_help_string();
+    die <<__EOU__;
 
 The ... is either a list of files, or --code='...', or --files_from_file=file.
 
@@ -91,38 +101,39 @@ __EOU__
 
 my %Opt = ( separator => "\t", recurse => 1, report_title => 1 );
 
-usage() unless GetOptions('files' => \$Opt{files},
-                          'subs' => \$Opt{subs},
-                          'packages' => \$Opt{packages},
-                          'modules' => \$Opt{modules},
-                          'total_lines' => \$Opt{total_lines},
-                          'files_lines' => \$Opt{files_lines},
-                          'subs_files' => \$Opt{subs_files},
-                          'packages_files' => \$Opt{packages_files},
-                          'incs_files' => \$Opt{incs_files},
-                          'incs_chains' => \$Opt{incs_chains},
-                          'incs_chains_reverse' => \$Opt{incs_chains_reverse},
-                          'files_counts' => \$Opt{files_counts},
-                          'modules_counts' => \$Opt{modules_counts},
-                          'incs_deps' => \$Opt{incs_deps},
-                          'parse' => \$Opt{parse},
-                          'report_all' => \$Opt{report_all},
-                          'report_prefix=s' => \$Opt{report_prefix},
-                          'INC=s' => \$Opt{INC},
-                          'cache_directory=s' => \$Opt{cache_directory},
-                          'code=s' => \$Opt{code},
-                          'files_from_file=s' => \$Opt{files_from_file},
-                          'process_verbose' => \$Opt{process_verbose},
-                          'cache_verbose' => \$Opt{cache_verbose},
-                          'summary' => \$Opt{summary},
-                          'separator=s' => \$Opt{separator},
-                          'recurse!' => \$Opt{recurse},
-                          'column' => \$Opt{column},
-                          'finish' => \$Opt{finish},
-                          'help' => \$Opt{help},
-                          'usage' => \$Opt{usage});
+help() unless GetOptions('files' => \$Opt{files},
+                         'subs' => \$Opt{subs},
+                         'packages' => \$Opt{packages},
+                         'modules' => \$Opt{modules},
+                         'total_lines' => \$Opt{total_lines},
+                         'files_lines' => \$Opt{files_lines},
+                         'subs_files' => \$Opt{subs_files},
+                         'packages_files' => \$Opt{packages_files},
+                         'incs_files' => \$Opt{incs_files},
+                         'incs_chains' => \$Opt{incs_chains},
+                         'incs_chains_reverse' => \$Opt{incs_chains_reverse},
+                         'files_counts' => \$Opt{files_counts},
+                         'modules_counts' => \$Opt{modules_counts},
+                         'incs_deps' => \$Opt{incs_deps},
+                         'parse' => \$Opt{parse},
+                         'report_all' => \$Opt{report_all},
+                         'report_prefix=s' => \$Opt{report_prefix},
+                         'INC=s' => \$Opt{INC},
+                         'cache_directory=s' => \$Opt{cache_directory},
+                         'code=s' => \$Opt{code},
+                         'files_from_file=s' => \$Opt{files_from_file},
+                         'process_verbose' => \$Opt{process_verbose},
+                         'cache_verbose' => \$Opt{cache_verbose},
+                         'summary' => \$Opt{summary},
+                         'separator=s' => \$Opt{separator},
+                         'recurse!' => \$Opt{recurse},
+                         'column' => \$Opt{column},
+                         'finish' => \$Opt{finish},
+                         'help' => \$Opt{help},
+                         'longhelp' => \$Opt{longhelp});
 
-usage() if $Opt{help} || $Opt{usage};
+help()if $Opt{help};
+long_help() if $Opt{longhelp};
 
 my @ACTION = qw[files subs packages modules
                 subs_files packages_files files_lines total_lines
@@ -134,7 +145,7 @@ if ($Opt{report_all}) {
 }
 
 use List::Util qw[any];
-usage() unless (any { $Opt{$_} } @ACTION) || $Opt{parse};
+help() unless (any { $Opt{$_} } @ACTION) || $Opt{parse};
 
 $Opt{separator} = "\t" if $Opt{separator} eq '\t';  # Nicer to type in shells.
 
@@ -173,10 +184,10 @@ package Times {
 my $t0 = Times->get();
 
 if (defined $Opt{code}) {
-    usage() if @ARGV || defined $Opt{files_from_file};
+    help() if @ARGV || defined $Opt{files_from_file};
     $xref->process(\$Opt{code});
 } elsif (defined $Opt{files_from_file}) {
-    usage() if @ARGV;
+    help() if @ARGV;
     my $fh;
     if ($Opt{files_from_file} eq '-') {
         $fh = *STDIN;
@@ -192,12 +203,12 @@ if (defined $Opt{code}) {
             }
         }
     } else {
-        usage();
+        help();
     }
 } elsif (@ARGV) {
     $xref->process(@ARGV);
 } else {
-    usage();
+    help();
 }
 
 my $t1 = Times->get();
