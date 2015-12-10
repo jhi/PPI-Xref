@@ -77,8 +77,8 @@ An "inc" is a "file inclusion", any of the use/no/require/do.
   or module is referred to (first-level).
 
 * --incs_deps shows what kind of tree node (root, branch, leaf, singleton)
-  each file is in the total dependency tree.  B<It does not attempt to draw
-  the actual tree graph.>
+  each file is in the total dependency tree.  It does not attempt to draw
+  the actual tree graph.
 
 * --report_all turns on all the reports.  By default these reports go
   to STDOUT, with --report_prefix you can direct them to files starting
