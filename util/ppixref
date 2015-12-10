@@ -103,7 +103,7 @@ The --cacheverbose turns on verbose cache access.
 __EOU__
 }
 
-my %Opt = ( separator => "\t", recurse => 1, report_title => 1, summary => 1 );
+my %Opt = ( separator => "\t", recurse => 1, report_title => 1 );
 
 help() unless GetOptions('files' => \$Opt{files},
                          'subs' => \$Opt{subs},
