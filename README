@@ -4,8 +4,8 @@ You do need PPI and Sereal installed.
 
 At the moment, sub definitions are detected, and use/no/require/do are
 recursively followed.  You can query things like the subs defined and
-where in the code exactly (file, line, even colum), package declarations
-seen, and so forth.
+their location in the code (file, line, even column, and where they finish),
+package declarations seen, and so forth.
 
 util/ppixref is a command-line frontend utility for using PPI::Xref.
 
