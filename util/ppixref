@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+
 use PPI::Xref;
 
 use strict;
