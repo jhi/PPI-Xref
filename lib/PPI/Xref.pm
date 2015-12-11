@@ -179,6 +179,13 @@ sub __close_open_package {
 # "shadow file" is a filename rooted into a new, "shadow", directory.
 sub __shadow_filename {
     my ($self, $shadowdir, $filename) = @_;
+
+    # Paranoia check.  (Either absolute or relative is fine, though.)
+    if ($filename =~ m{\.\.}) {
+        warn "Skipping unexpected file: '$filename'\n";
+        return;
+    }
+
     use File::Spec;
     my $base =
         File::Spec->file_name_is_absolute($filename) ?
@@ -307,6 +314,11 @@ sub __cache_filename {
 
     unless ($self->__is_readwrite_directory($cache_directory)) {
         warn "process: Not a read-write directory '$cache_directory'\n";
+        return;
+    }
+
+    if ($file !~ /\.p[ml]$/) {
+        warn "process: Unexpected filename: '$file'\n";
         return;
     }
 
@@ -1308,6 +1320,34 @@ sub incs_chains_iter {
     }, 'PPI::Xref::IncsChainsIter';
 }
 
+sub cache_delete {
+    my $self = shift;
+    my $cache_directory = $self->{opt}{cache_directory};
+    unless (defined $cache_directory) {
+        warn "cache_delete: cache_directory undefined\n";
+        return;
+    }
+    my $delete_count = 0;
+    for my $file (@_) {
+        if ($file !~ m{^/} ||
+            $file =~ m{\.\.} ||
+            $file !~ m{\.p[ml](?:\.cache)?$}) {
+            # Paranoia check.
+            warn "cache_delete: Skipping unexpected file: '$file'\n";
+            next;
+        }
+        my $cache_file =
+            $file =~ /\.cache$/ ? $file : $self->__cache_filename($file);
+        # Paranoia take two.
+        unless ($cache_file =~ m|^$cache_directory/.+.cache$|) {
+            warn "cache_delete: Skipping unexpected cache file: '$cache_file'\n";
+            next;
+        }
+        $delete_count++ if unlink $cache_file;
+    }
+    return $delete_count;
+}
+
 1;
 __DATA__
 =pod
@@ -1571,6 +1611,23 @@ How many PPI processing results have been read from the cache results.
 =head3 cache_writes
 
 How many PPI processing results have been written to the cache results.
+
+=head2 cache_delete
+
+For cache maintenance you may want to delete cache files of removed
+source files.  Detection of removed source files is outside the scope
+of PPI::Xref (either or both of version control system querying and
+file system traversal are likely), but if you know the files, you
+can use
+
+  $xref->cache_delete($file, ...)
+
+The specified files have to be either original fully resolved filenames,
+(not the INC-relative ones), or the fully resolved cache filenames.
+
+Deletions happen quietly: a missing cache file causes no warning.
+
+Returns the number of successful deletions.
 
 =head1 PREREQUISITES
 
