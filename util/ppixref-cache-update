@@ -131,9 +131,9 @@ for my $arg (@ARGV) {
             print "D\t$f\n";
         }
         if (defined $xref && $Opt{delete}) {
-            printf("$ME: deleting %d cache files for '$dir'\n", scalar @f);
+            printf("$ME: possibly deleting %d cache files for '$dir'\n", scalar @f);
             my $deleted = $xref->cache_delete(@f);
-            printf("$ME: deleted %d cache files for '$dir'\n", $deleted || 0);
+            printf("$ME: actually deleted %d cache files for '$dir'\n", $deleted || 0);
         }
     }
     for my $r ('M', 'A') {
@@ -146,7 +146,7 @@ for my $arg (@ARGV) {
             print "R\t$f\n";
         }
         if (defined $xref && $Opt{update}) {
-            printf("$ME: %s %d files\n",
+            printf("$ME: possibly %s %d files\n",
                    ($r eq 'M' ? 'reprocessing' : 'processing'), scalar @f);
             $xref->process(@f);
         }
