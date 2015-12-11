@@ -352,7 +352,7 @@ if ($Opt{summary}) {
                  $xref->cache_updates,
                  $xref->cache_creates,
                  $xref->cache_deletes);
-    printf("$ME: scan: wall=%.2fs user=%.2fs system=%.2fs cpu=%.2fs\n",
+    printf("$ME: parse: wall=%.2fs user=%.2fs system=%.2fs cpu=%.2fs\n",
            $dw1, $du1, $ds1, $dc1);
     my ($dw2, $du2, $ds2, $dc2) = $t2->diff($t1);
     printf("$ME: output: wall=%.2fs user=%.2fs system=%.2fs cpu=%.2fs\n",
