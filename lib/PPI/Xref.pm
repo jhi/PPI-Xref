@@ -1564,6 +1564,6 @@ How many PPI processing results have been written to the cache results.
 
 =head1 PREREQUISITES
 
-perl 5.14, L<https://search.cpan.org/perldoc?PPI>
+perl 5.14, L<https://search.cpan.org/perldoc?PPI>, L<https://search.cpan.org/perldoc?Sereal>
 
 =cut
