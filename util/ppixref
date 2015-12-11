@@ -345,12 +345,13 @@ if ($Opt{summary}) {
                  $xref->files || 0,
                  $xref->total_lines || 0,
                  $xref->subs || 0);
-    printf("$ME: docs_created=%d cache reads=%d writes=%d updates=%d creates=%d\n",
+    printf("$ME: docs_created=%d cache reads=%d writes=%d updates=%d creates=%d deletes=%d\n",
                  $xref->docs_created,
                  $xref->cache_reads,
                  $xref->cache_writes,
                  $xref->cache_updates,
-                 $xref->cache_creates);
+                 $xref->cache_creates,
+                 $xref->cache_deletes);
     printf("$ME: scan: wall=%.2fs user=%.2fs system=%.2fs cpu=%.2fs\n",
            $dw1, $du1, $ds1, $dc1);
     my ($dw2, $du2, $ds2, $dc2) = $t2->diff($t1);
