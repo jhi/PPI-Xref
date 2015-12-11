@@ -129,7 +129,7 @@ for my $arg (@ARGV) {
     }
     for my $d ('D') {
         unless (exists $update{$d}) {
-            print "$ME: No files deleted\n";
+            print "$ME: No files deleted.\n";
             next;
         }
         my @f = map { "$dir/$_" } sort keys %{ $update{$d} };
@@ -144,7 +144,7 @@ for my $arg (@ARGV) {
     }
     for my $r ('M', 'A') {
         unless (exists $update{$r}) {
-            printf("$ME: No files %s\n", $r eq 'M' ? 'changed' : 'added');
+            printf("$ME: No files %s.\n", $r eq 'M' ? 'changed' : 'added');
             next;
         }
         my @f = map { "$dir/$_" } sort keys %{ $update{$r} };
