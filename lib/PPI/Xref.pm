@@ -1343,6 +1343,9 @@ sub cache_delete {
             warn "cache_delete: Skipping unexpected cache file: '$cache_file'\n";
             next;
         }
+        if ($self->{opt}{cache_verbose}) {
+            print "cache_delete: deleting $cache_file\n";
+        }
         $delete_count++ if unlink $cache_file;
     }
     return $delete_count;
