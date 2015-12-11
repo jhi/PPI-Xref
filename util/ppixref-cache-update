@@ -44,13 +44,19 @@ __EOU__
 
 my %Opt = ( since => '24 h', time_padding => 1.05, pull => 1 );
 
+# We pad the --since seconds because of processing overhead.
+# However, there's no point in padding too much, so let's have max.
+our $MAX_PAD_SEC = 6 * 3600;  # 6h
+
 sub parse_since {
     my $s = shift;
     if ($s =~ m{^(\d+(?:\.\d+)?)\s*(h(?:(?:our)?rs)?|m(?:in(?:(?:ute)?s)?)?|s(?:ec(?:(?:ond)?s)?)?)$}) {
         my $t = $1;
         my $u = $2;
         my $s = $u =~ /^h/ ? 3600 * $t : $u =~ /^m/ ? 60 * $s : $s;
-        $s = int($s * $Opt{time_padding});
+        my $pad_sec = int($s * ($Opt{time_padding} - 1.0));
+        $pad_sec = $MAX_PAD_SEC if $pad_sec > $MAX_PAD_SEC;
+        $s += $pad_sec;
         return "--since '$s seconds ago'";
     } elsif ($s =~ m|^[0-9a-f]{6,}|) {
         return "$s..HEAD";
