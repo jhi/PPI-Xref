@@ -55,6 +55,9 @@ sub new {
         unless (PPI::Xref->__is_readwrite_directory($cache_directory)) {
             warn "PPI::Xref:new: cache_directory '$cache_directory': not a read-write directory\n";
         }
+
+        $self->{__cache_prefix_length} = length($cache_directory) + 1;
+
         use Sereal::Encoder;
         use Sereal::Decoder;
         $self->{encoder} = Sereal::Encoder->new;
@@ -1357,6 +1360,23 @@ sub cache_delete {
         }
     }
     return $delete_count;
+}
+
+sub __unparse_cache_filename {
+    my ($self, $cache_filename) = @_;
+
+    my $cache_directory = $self->{opt}{cache_directory};
+    return unless defined $cache_directory;
+
+    return unless $cache_filename =~ s{\.cache$}{};
+
+    my $cache_prefix_length = $self->{__cache_prefix_length};
+    return unless length($cache_filename) > $cache_prefix_length;
+
+    my $prefix = substr($cache_filename, 0, $cache_prefix_length);
+    return unless $prefix eq "$cache_directory/";
+
+    return substr($cache_filename, $cache_prefix_length - 1);
 }
 
 1;

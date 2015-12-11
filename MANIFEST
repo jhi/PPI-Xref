@@ -31,6 +31,8 @@ t/23_cache_hash.t
 t/24_cache_nocache.t
 t/25_cache_update.t
 t/26_cache_system.t
+t/27_cache_delete.t
+t/28_cache_filename.t
 t/lib/A.pm
 t/lib/B.pm
 t/lib/E.pm
