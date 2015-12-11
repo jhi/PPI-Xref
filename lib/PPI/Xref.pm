@@ -354,11 +354,18 @@ sub __check_cached {
             }
             $cached = $self->__decode_from_file($cache_filename);
             if (defined $cached) {
+                if ($self->{opt}{cache_verbose}) {
+                    print "process: reading $cache_filename SUCCESS\n";
+                }
                 $hash_previous = $cached->{file_hash};
                 $hash_match =
                     defined $hash_previous &&
                     defined $hash_current &&
                     $hash_previous eq $hash_current;
+            } else {
+                if ($self->{opt}{cache_verbose}) {
+                    print "process: reading $cache_filename FAILURE\n";
+                }
             }
         }
     }
@@ -375,9 +382,16 @@ sub __to_cache {
 
     my $had_cache = -f $cache_filename;
     if ($self->__write_cachefile($cache_filename, $hash_current, $file_id)) {
+        if ($self->{opt}{cache_verbose}) {
+            print "process: writing $cache_filename SUCCESS\n";
+        }
         $self->{__cachewrites}++;
         unless ($had_cache) {
             $self->{__cachecreates}++;
+        }
+    } else {
+        if ($self->{opt}{cache_verbose}) {
+            print "process: writing $cache_filename FAILURE\n";
         }
     }
 }
