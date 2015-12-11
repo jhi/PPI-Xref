@@ -461,10 +461,6 @@ sub __process_file {
             $self->__process_id($doc, $file_id, $process_depth);
             $self->{__docscreated}++;
         }
-        if (defined $self->{file_hash}{$file_id}) {
-            # Recursion might have updated our hash.
-            $hash_match = $self->{file_hash}{$file_id} eq $hash_current;
-        }
         if (defined $cache_filename &&
             defined $hash_current &&
             !$hash_match) {
