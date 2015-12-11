@@ -3,7 +3,6 @@
 # Script for updating a ppixref cache directory based
 # on one or more git repositories.
 
-# TODO: allow updating based on plain non-git directories
 # TODO: allow indexing a directory (either git or plain) from scratch
 
 use strict;
@@ -14,19 +13,43 @@ our $ME = basename($0);
 
 use Getopt::Long;
 
+my %Opt = ( since => '24 h', time_padding => 1.05, pull => 1 );
+
+# We pad the --since seconds because of processing overhead.
+# However, there's no point in padding too much, so let's have max.
+our $MAX_PAD_SEC = 6 * 3600;  # 6h
+
 sub usage {
     die <<__EOU__
 $ME: Usage:
 $ME [--since=[sha1|'n h'|'n min'|'n s']|--time_padding=1.05|--pull] git:dir ...
 $ME --cache_directory=dir [--update|--delete] git:dir ...
+$ME --verbose ...
+$ME --help
 
-The directories must currently be git repository roots.  By default
-'git pull' is executed in these directory, use --nopull not to.
+The directories must either be git repository roots:
+
+ git:/dir/...
+
+or a plain directory
+
+  /dir/...
+
+If the directory is a git directory, 'git pull' is executed in it
+before looking for changes, use --nopull not to.
 
 Examples:
 $ME --since=cafe0123
-$ME --since='24 h'  # default, but with time padding round(24 * 1.05) = 26h
+$ME --since='24 h'
 $ME --since='3 min' --time_padding=1.0  # exactly 3 minutes
+
+The default is --since=$Opt{since}, but with the time padding that ends up being more.
+The --since=time are first converted to seconds, and then multiplied by $Opt{time_padding}.
+
+At most the time padding increases the since value by $MAX_PAD_SEC seconds.
+The padding is done to paper over processing overlap, so that one can
+e.g. daily reprocess and not miss things.  This is obviously an ugly
+hack: for git repositories a better way is to use the exact checksums.
 
 By default only the files requiring attention are listed, with "R" for
 refreshes (modified or addded), and "D" for deletes.  To really update
@@ -42,12 +65,6 @@ $ME --delete  # delete the cache files for these files
 __EOU__
 }
 
-my %Opt = ( since => '24 h', time_padding => 1.05, pull => 1 );
-
-# We pad the --since seconds because of processing overhead.
-# However, there's no point in padding too much, so let's have max.
-our $MAX_PAD_SEC = 6 * 3600;  # 6h
-
 sub parse_since {
     my $s = shift;
     if ($s =~ m{^(\d+(?:\.\d+)?)\s*(h(?:(?:our)?rs)?|m(?:in(?:(?:ute)?s)?)?|s(?:ec(?:(?:ond)?s)?)?)$}) {
@@ -57,7 +74,7 @@ sub parse_since {
         my $pad_sec = int($s * ($Opt{time_padding} - 1.0));
         $pad_sec = $MAX_PAD_SEC if $pad_sec > $MAX_PAD_SEC;
         $s += $pad_sec;
-        return "--since '$s seconds ago'";
+        return "--since='$s seconds ago'";
     } elsif ($s =~ m|^[0-9a-f]{6,}|) {
         return "$s..HEAD";
     } else {
@@ -73,7 +90,10 @@ usage()
         'cache_directory=s' => \$Opt{cache_directory},
         'update'            => \$Opt{update},
         'delete'            => \$Opt{delete},
+        'verbose'           => \$Opt{verbose},
+        'help'              => \$Opt{help},
     );
+usage() if $Opt{help};
 
 if ($Opt{time_padding} < 1.0 || $Opt{time_padding} > 2.0) {
     die "$ME: Unexpected --time_padding=$Opt{time_padding}\n";
@@ -81,78 +101,134 @@ if ($Opt{time_padding} < 1.0 || $Opt{time_padding} > 2.0) {
 
 my $since = parse_since($Opt{since});
 
-print "$ME: since = $since\n";
+print "$ME: since: $since\n";
+
+use File::Find;
+
+my %Cache;
 
 my $xref;
 
-if (defined $Opt{cache_directory}) {
+my $cache_directory = $Opt{cache_directory};
+if (defined $cache_directory) {
     unless ($Opt{update} || $Opt{delete}) {
         die "$ME: --cache_directory defined but neither --update nor --delete used\n";
     }
     use PPI::Xref;
-    $xref = PPI::Xref->new({cache_directory => $Opt{cache_directory},
+    $xref = PPI::Xref->new({cache_directory => $cache_directory,
                             # cache_verbose => 1,
-                            process_verbose => 1,
+                            # process_verbose => 1,
                            });
+    File::Find::find(
+        sub {
+            if (/\.p[ml]\.cache$/) {
+                my $name = $xref->__unparse_cache_filename($File::Find::name);
+                $Cache{$name}++;
+            }
+        },
+        $cache_directory);
+    printf("$ME: found %d cache files in '$cache_directory'\n",
+           scalar keys %Cache);
 } else {
     die "$ME: --cache_directory undefined but either --update or --delete used\n";
 }
 
 for my $arg (@ARGV) {
-    unless ($arg =~ m{^git:(/.+)}) {
-        warn "$ME: Skipping unexpected argument $arg\n";
+    my $dir;
+    my $git;
+    if ($arg =~ m{^git:(/.+)}) {
+        $dir = $1;
+        $git = 1;
+    } elsif ($arg =~ m{^/.+}) {
+        $dir = $arg;
+    } else {
+        warn "$ME: Skipping unexpected argument '$arg'\n";
         next;
     }
-    my $dir = $1;
+
     unless (chdir($dir)) {
         warn "$ME: chdir('$dir') failed: $!\n";
         next;
     }
-    my $pull = qq[git pull];
-    print "$ME: '$pull' in '$dir'\n";
-    unless (system($pull) == 0) {
-        warn "$ME: '$pull' failed in '$dir': $!\n";
-        next;
-    }
-    my $log = qq[git log --name-status --oneline $since];
-    print "$ME: '$log' in '$dir'\n";
-    my $log_fh;
-    unless (open($log_fh,  "$log |")) {
-        warn "$ME: open(..., '$log |') failed in '$dir': $!\n";
-        next;
-    }
+
     my %update;
-    while (<$log_fh>) {
-        if (/^([MAD])\s+(.+\.pm)$/) {
-            $update{$1}{$2}++;
-        }
-    }
-    for my $d ('D') {
-        unless (exists $update{$d}) {
-            print "$ME: No files deleted.\n";
+
+    if ($git) {
+        unless (-d ".git") {
+            warn "$ME: Skipping '$dir' since found no .git\n";
             next;
         }
-        my @f = map { "$dir/$_" } sort keys %{ $update{$d} };
-        for my $f (@f) {
-            print "D\t$f\n";
+        my $pull = qq[git pull];
+        print "$ME: '$pull' in '$dir'\n";
+        unless (system($pull) == 0) {
+            warn "$ME: '$pull' failed in '$dir': $!\n";
+            next;
+        }
+        my $log = qq[git log --name-status --oneline $since];
+        print "$ME: '$log' in '$dir'\n";
+        my $log_fh;
+        unless (open($log_fh,  "$log |")) {
+            warn "$ME: open(..., '$log |') failed in '$dir': $!\n";
+            next;
+        }
+        while (<$log_fh>) {
+            if (/^([MAD])\s+(.+\.pm)$/) {
+                $update{"$dir/$1"}{$2}++;
+            }
+        }
+    } else {
+        if (-d ".git") {
+            warn "$ME: Skipping '$dir' since found .git\n";
+            next;
+        }
+        File::Find::find(
+            sub {
+                my $name = $File::Find::name;
+                if (exists $Cache{$name}) {
+                    $update{M}{$name}++;
+                }
+            }, $dir);
+        for my $c (keys %Cache) {
+            my $cache_filename = $xref->__cache_filename($c);
+            unless (-f $cache_filename) {
+                $update{D}{$c}++;
+            }
+        }
+    }
+
+    for my $d ('D') {
+        unless (exists $update{$d}) {
+            print "$ME: No files deleted in '$dir'.\n";
+            next;
+        }
+        my @f = sort keys %{ $update{$d} };
+        if ($Opt{verbose}) {
+            for my $f (@f) {
+                print "D\t$f\n";
+            }
         }
         if (defined $xref && $Opt{delete}) {
-            printf("$ME: possibly deleting %d cache files for '$dir'\n", scalar @f);
+            printf("$ME: Possibly deleting %d cache files in '$dir'\n",
+                   scalar @f);
             my $deleted = $xref->cache_delete(@f);
-            printf("$ME: actually deleted %d cache files for '$dir'\n", $deleted || 0);
+            printf("$ME: Actually deleted %d cache files in '$dir'\n",
+                   $deleted || 0);
         }
     }
     for my $r ('M', 'A') {
         unless (exists $update{$r}) {
-            printf("$ME: No files %s.\n", $r eq 'M' ? 'changed' : 'added');
+            printf("$ME: No files %s in '$dir'.\n",
+                   $r eq 'M' ? 'changed' : 'added');
             next;
         }
-        my @f = map { "$dir/$_" } sort keys %{ $update{$r} };
-        for my $f (@f) {
-            print "R\t$f\n";
+        my @f = sort keys %{ $update{$r} };
+        if ($Opt{verbose}) {
+            for my $f (@f) {
+                print "R\t$f\n";
+            }
         }
         if (defined $xref && $Opt{update}) {
-            printf("$ME: possibly %s %d files\n",
+            printf("$ME: Possibly %s %d source files in '$dir'\n",
                    ($r eq 'M' ? 'reprocessing' : 'processing'), scalar @f);
             $xref->process(@f);
         }
