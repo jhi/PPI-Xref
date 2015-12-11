@@ -513,6 +513,11 @@ sub cache_updates {
     return $self->{__cacheupdates} // 0;
 }
 
+sub cache_deletes {
+    my ($self) = @_;
+    return $self->{__cachedeletes} // 0;
+}
+
 # For results imported from cache, process any cached inclusions.
 # The [6] is the include file, the [7] will become its (new) file id.
 sub __process_cached_incs {
@@ -1346,7 +1351,10 @@ sub cache_delete {
         if ($self->{opt}{cache_verbose}) {
             print "cache_delete: deleting $cache_file\n";
         }
-        $delete_count++ if unlink $cache_file;
+        if (unlink $cache_file) {
+            $delete_count++;
+            $self->{__cachedeletes}++;
+        }
     }
     return $delete_count;
 }
