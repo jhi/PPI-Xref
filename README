@@ -17,3 +17,8 @@ need to create the cache directory first.  For testing, just example:
 and then
 
   ppixref ... --cache_directory=/tmp/cache ...
+
+Another utility, ppixref-cache-update, can be used to explicitly
+update an existing cache directory.
+
+__EOF__

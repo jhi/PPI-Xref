@@ -38,4 +38,5 @@ t/lib/F.pm
 t/lib/f.pl
 t/lib/g.pl
 t/util.pl
-utils/ppixref
+util/ppixref
+util/ppixref-cache-update

@@ -10,5 +10,5 @@ WriteMakefile(
                            "Sereal::Encoder" => 0,
                          },
     TEST_REQUIRES     => { "Test::More" => 0 },
-    EXE_FILES         => [ qw[util/ppixref] ],
+    EXE_FILES         => [ qw[util/ppixref util/ppixref-cache-update] ],
 );

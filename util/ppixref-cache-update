@@ -1,0 +1,165 @@
+#!/usr/bin/perl -w
+
+# Script for updating a ppixref cache directory based
+# on one or more git repositories.
+
+# TODO: allow updating based on plain non-git directories
+# TODO: allow indexing a directory (either git or plain) from scratch
+
+use strict;
+use warnings;
+
+use File::Basename qw[basename];
+our $ME = basename($0);
+
+use Getopt::Long;
+
+sub usage {
+    die <<__EOU__
+$ME: Usage:
+$ME [--since=[sha1|'n h'|'n min'|'n s']|--time_padding=1.05|--pull] git:dir ...
+$ME --cache_directory=dir [--update|--delete] git:dir ...
+
+The directories must currently be git repository roots.  By default
+'git pull' is executed in these directory, use --nopull not to.
+
+Examples:
+$ME --since=cafe0123
+$ME --since='24 h'  # default, but with time padding round(24 * 1.05) = 26h
+$ME --since='3 min' --time_padding=1.0  # exactly 3 minutes
+
+By default only the files requiring attention are listed, with "R" for
+refreshes (modified or addded), and "D" for deletes.  To really update
+the ppixref cache you need
+
+--cache_directory=dir
+
+with either or both of
+
+$ME --update  # reprocess the modified files, process the added files
+$ME --delete  # delete the cache files for these files
+
+__EOU__
+}
+
+my %Opt = ( since => '24 h', time_padding => 1.05, pull => 1 );
+
+sub parse_since {
+    my $s = shift;
+    if ($s =~ m{^(\d+(?:\.\d+)?)\s*(h(?:(?:our)?rs)?|m(?:in(?:(?:ute)?s)?)?|s(?:ec(?:(?:ond)?s)?)?)$}) {
+        my $t = $1;
+        my $u = $2;
+        my $s = $u =~ /^h/ ? 3600 * $t : $u =~ /^m/ ? 60 * $s : $s;
+        $s = int($s * $Opt{time_padding});
+        return "--since '$s seconds ago'";
+    } elsif ($s =~ m|^[0-9a-f]{6,}|) {
+        return "$s..HEAD";
+    } else {
+         die "$ME: Unexpected --since='$s'\n";
+    }
+}
+
+usage()
+    unless GetOptions(
+        'since=s'           => \$Opt{since},
+        'time_padding=f'    => \$Opt{time_padding},
+        'pull'              => \$Opt{pull},
+        'cache_directory=s' => \$Opt{cache_directory},
+        'update'            => \$Opt{update},
+        'delete'            => \$Opt{delete},
+    );
+
+if ($Opt{time_padding} < 1.0 || $Opt{time_padding} > 2.0) {
+    die "$ME: Unexpected --time_padding=$Opt{time_padding}\n";
+}
+
+my $since = parse_since($Opt{since});
+
+print "$ME: since = $since\n";
+
+my $xref;
+
+if (defined $Opt{cache_directory}) {
+    unless ($Opt{update} || $Opt{delete}) {
+        die "$ME: --cache_directory defined but neither --update nor --delete used\n";
+    }
+    use PPI::Xref;
+    $xref = PPI::Xref->new({cache_directory => $Opt{cache_directory},
+                            # cache_verbose => 1,
+                            process_verbose => 1,
+                           });
+} else {
+    die "$ME: --cache_directory undefined but either --update or --delete used\n";
+}
+
+for my $arg (@ARGV) {
+    unless ($arg =~ m{^git:(/.+)}) {
+        warn "$ME: Skipping unexpected argument $arg\n";
+        next;
+    }
+    my $dir = $1;
+    unless (chdir($dir)) {
+        warn "$ME: chdir('$dir') failed: $!\n";
+        next;
+    }
+    my $pull = qq[git pull];
+    print "$ME: '$pull' in '$dir'\n";
+    unless (system($pull) == 0) {
+        warn "$ME: '$pull' failed in '$dir': $!\n";
+        next;
+    }
+    my $log = qq[git log --name-status --oneline $since];
+    print "$ME: '$log' in '$dir'\n";
+    my $log_fh;
+    unless (open($log_fh,  "$log |")) {
+        warn "$ME: open(..., '$log |') failed in '$dir': $!\n";
+        next;
+    }
+    my %update;
+    while (<$log_fh>) {
+        if (/^([MAD])\s+(.+\.pm)$/) {
+            $update{$1}{$2}++;
+        }
+    }
+    for my $d ('D') {
+        unless (exists $update{$d}) {
+            print "$ME: No files deleted\n";
+            next;
+        }
+        my @f = map { "$dir/$_" } sort keys %{ $update{$d} };
+        for my $f (@f) {
+            print "D\t$f\n";
+        }
+        if (defined $xref && $Opt{delete}) {
+            printf("$ME: deleting %d cache files for '$dir'\n", scalar @f);
+            my $deleted = $xref->cache_delete(@f);
+            printf("$ME: deleted %d cache files for '$dir'\n", $deleted || 0);
+        }
+    }
+    for my $r ('M', 'A') {
+        unless (exists $update{$r}) {
+            printf("$ME: No files %s\n", $r eq 'M' ? 'changed' : 'added');
+            next;
+        }
+        my @f = map { "$dir/$_" } sort keys %{ $update{$r} };
+        for my $f (@f) {
+            print "R\t$f\n";
+        }
+        if (defined $xref && $Opt{update}) {
+            printf("$ME: %s %d files\n",
+                   ($r eq 'M' ? 'reprocessing' : 'processing'), scalar @f);
+            $xref->process(@f);
+        }
+    }
+}
+
+if (defined $xref) {
+    printf("$ME: cache reads=%s writes=%s creates=%d updates=%d deletes=%s\n",
+           $xref->cache_reads   || 0,
+           $xref->cache_writes  || 0,
+           $xref->cache_creates || 0,
+           $xref->cache_updates || 0,
+           $xref->cache_deletes || 0);
+}
+
+exit(0);
