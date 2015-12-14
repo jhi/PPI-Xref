@@ -14,7 +14,7 @@ Getopt::Long::Configure(qw[no_auto_abbrev]);
 sub short_help_string {
     return <<__EOU__;
 $ME: Usage:
-$ME [--files|--subs|--packages|--modules] ...
+$ME [--files|--subs|--packages|--modules|--missing_modules] ...
 $ME [--subs_files|--packages_files] ...
 $ME [--files_lines|--total_lines] ...
 $ME [--incs_files|--incs_chains|--incs_chains_reverse|--incs_deps] ...
@@ -58,6 +58,9 @@ An "inc" is a "file inclusion", any of the use/no/require/do.
 
 * --packages shows seen package statements, while the --modules shows
   module names included via use/no/require.
+
+* --missing_modules (default: on) shows the missing modules (in addition
+  to warning about them during scan).  Use --nomissing_modules to suppress.
 
 * --subs_files, --packages_files, and --incs_files by default show only
   the start line, with --finish they show also the finish, and with
@@ -103,12 +106,18 @@ The --cacheverbose turns on verbose cache access.
 __EOU__
 }
 
-my %Opt = ( separator => "\t", recurse => 1, report_title => 1 );
+my %Opt = (
+    separator => "\t",
+    recurse => 1,
+    report_title => 1,
+    missing_modules => 1,
+ );
 
 help() unless GetOptions('files' => \$Opt{files},
                          'subs' => \$Opt{subs},
                          'packages' => \$Opt{packages},
                          'modules' => \$Opt{modules},
+                         'missing_modules' => \$Opt{missing_modules},
                          'total_lines' => \$Opt{total_lines},
                          'files_lines' => \$Opt{files_lines},
                          'subs_files' => \$Opt{subs_files},
@@ -139,7 +148,7 @@ help() unless GetOptions('files' => \$Opt{files},
 help()if $Opt{help};
 long_help() if $Opt{longhelp};
 
-my @ACTION = qw[files subs packages modules
+my @ACTION = qw[files subs packages modules missing_modules
                 subs_files packages_files files_lines total_lines
                 files_counts modules_counts
                 incs_files incs_deps incs_chains incs_chains_reverse];
@@ -277,6 +286,12 @@ unless ($Opt{parse}) {
             my ($xref, $fh) = @_;
             for my $f ($xref->modules) {
                 print { $fh } $f, $Opt{separator}, $xref->module_count($f), "\n";
+            }
+        },
+        missing_modules => sub {
+            my ($xref, $fh) = @_;
+            for my $m ($xref->missing_modules) {
+                print { $fh } $m, $Opt{separator}, $xref->missing_module_count($m), "\n";
             }
         },
         incs_deps => sub {

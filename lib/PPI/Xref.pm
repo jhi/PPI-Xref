@@ -225,6 +225,7 @@ my @CACHE_FIELDS =
        file_modules
        file_packages
        file_subs
+       file_missing_modules
       ];
 
 # Given the href, serialize it to the file.
@@ -682,6 +683,7 @@ sub __process_id {
                     $include_file = $self->__find_module($include_content);
                     $self->{file_modules}{$file_id}{$include_content}++;
                     unless (defined $include_file) {
+                        $self->{file_missing_modules}{$file_id}{$include_content}++;
                         warn "process: warning: Failed to find module '$include_string' in $fileloc\n";
                     }
                 } elsif ($including_file) {
@@ -806,6 +808,7 @@ sub file_count {
     return $self->{file_counts}->{$file};
 }
 
+# Computes the seen modules.
 sub __modules {
     my $self = shift;
     unless (defined $self->{result_cache}{modules}) {
@@ -827,12 +830,44 @@ sub modules {
     return @{ $self->{result_cache}{modules} };
 }
 
+# Computes the missing modules.
+sub __missing_modules {
+    my $self = shift;
+    unless (defined $self->{result_cache}{missing_modules}) {
+        $self->{result_cache}{missing_modules} //= [];
+        return unless $self->{file_missing_modules};
+        delete $self->{missing_modules};
+        for my $f ($self->__file_ids) {
+            for my $m (keys %{ $self->{file_missing_modules}{$f} }) {
+                $self->{missing_modules}{$m} += $self->{file_missing_modules}{$f}{$m};
+            }
+        }
+        $self->{result_cache}{missing_modules} =
+            [ sort keys %{ $self->{missing_modules} } ];
+    }
+}
+
+# Returns the missing modules.
+sub missing_modules {
+    my $self = shift;
+    $self->__missing_modules;
+    return @{ $self->{result_cache}{missing_modules} };
+}
+
 # Returns the total reference count of a module name.
 sub module_count {
     my ($self, $module) = @_;
     $self->__modules;
-    return unless $self->{modules};
-    return $self->{modules}->{$module};
+    return 0 unless $self->{modules};
+    return $self->{modules}->{$module} || 0;
+}
+
+# Returns the number of times a missing module was referenced.
+sub missing_module_count {
+    my ($self, $module) = @_;
+    $self->__missing_modules;
+    return 0 unless $self->{missing_modules};
+    return $self->{missing_modules}{$module} || 0;
 }
 
 # Generates the subs or packages.
