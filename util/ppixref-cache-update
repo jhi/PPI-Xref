@@ -23,7 +23,7 @@ sub usage {
     die <<__EOU__
 $ME: Usage:
 $ME [--since=[sha1|'n h'|'n min'|'n s']|--time_padding=1.05|--pull] git:dir ...
-$ME --cache_directory=dir [--update|--delete] git:dir ...
+$ME --cache_directory=dir [--update] git:dir ...
 $ME --verbose ...
 $ME --help
 
@@ -55,12 +55,10 @@ By default only the files requiring attention are listed, with "R" for
 refreshes (modified or addded), and "D" for deletes.  To really update
 the ppixref cache you need
 
---cache_directory=dir
+--cache_directory=dir --update
 
-with either or both of
-
-$ME --update  # reprocess the modified files, process the added files
-$ME --delete  # delete the cache files for these files
+which will reprocess the modified files, process the added files, and
+remove the cache files of deleted files.
 
 __EOU__
 }
@@ -89,7 +87,6 @@ usage()
         'pull'              => \$Opt{pull},
         'cache_directory=s' => \$Opt{cache_directory},
         'update'            => \$Opt{update},
-        'delete'            => \$Opt{delete},
         'verbose'           => \$Opt{verbose},
         'help'              => \$Opt{help},
     );
@@ -111,8 +108,8 @@ my $xref;
 
 my $cache_directory = $Opt{cache_directory};
 if (defined $cache_directory) {
-    unless ($Opt{update} || $Opt{delete}) {
-        die "$ME: --cache_directory defined but neither --update nor --delete used\n";
+    unless ($Opt{update}) {
+        die "$ME: --cache_directory defined but no --update used\n";
     }
     use PPI::Xref;
     $xref = PPI::Xref->new({cache_directory => $cache_directory,
@@ -164,7 +161,7 @@ for my $arg (@ARGV) {
             warn "$ME: '$pull' failed in '$dir': $!\n";
             next;
         }
-        my $log = qq[git log --name-status --oneline $since];
+        my $log = qq[git log --reverse --name-status --oneline $since];
         print "$ME: '$log' in '$dir'\n";
         my $log_fh;
         unless (open($log_fh,  "$log |")) {
@@ -173,7 +170,7 @@ for my $arg (@ARGV) {
         }
         while (<$log_fh>) {
             if (/^([MAD])\s+(.+\.pm)$/) {
-                $update{"$dir/$1"}{$2}++;
+                $update{"$dir/$2"} = $1;
             }
         }
     } else {
@@ -185,52 +182,58 @@ for my $arg (@ARGV) {
             sub {
                 my $name = $File::Find::name;
                 if (exists $Cache{$name}) {
-                    $update{M}{$name}++;
+                    $update{$name} = 'M';
                 }
             }, $dir);
         for my $c (keys %Cache) {
             my $cache_filename = $xref->__cache_filename($c);
             unless (-f $cache_filename) {
-                $update{D}{$c}++;
+                $update{$c} = 'D';
             }
         }
     }
 
-    for my $d ('D') {
-        unless (exists $update{$d}) {
-            print "$ME: No files deleted in '$dir'.\n";
-            next;
-        }
-        my @f = sort keys %{ $update{$d} };
-        if ($Opt{verbose}) {
-            for my $f (@f) {
-                print "D\t$f\n";
-            }
-        }
-        if (defined $xref && $Opt{delete}) {
-            printf("$ME: Possibly deleting %d cache files in '$dir'\n",
-                   scalar @f);
-            my $deleted = $xref->cache_delete(@f);
-            printf("$ME: Actually deleted %d cache files in '$dir'\n",
-                   $deleted || 0);
+    my @M;
+    my @A;
+    my @D;
+    for my $f (sort keys %update) {
+        my $v = $update{$f};
+        if ($v eq 'M') {
+            push @M, $f;
+        } elsif ($v eq 'A') {
+            push @A, $f;
+        } elsif ($v eq 'D') {
+            push @D, $f;
+        } else {
+            die qq[$ME: Unexpected value '$v' for key '$f'\n"];
         }
     }
-    for my $r ('M', 'A') {
-        unless (exists $update{$r}) {
-            printf("$ME: No files %s in '$dir'.\n",
-                   $r eq 'M' ? 'changed' : 'added');
-            next;
-        }
-        my @f = sort keys %{ $update{$r} };
-        if ($Opt{verbose}) {
-            for my $f (@f) {
-                print "R\t$f\n";
+
+    my $config = {
+        D => [ \@D, 'deleting',     'deleted',
+               sub { $xref->cache_delete(@_) } ],
+        A => [ \@A, 'processing',   'added',
+               sub { $xref->process(@_)      } ],
+        M => [ \@M, 'reprocessing', 'changed',
+               sub { $xref->process(@_)      } ],
+    };
+
+    for my $o (qw[D A M]) {
+        my $c = $config->{$o};
+        my @f = @{ $c->[0] };
+        if (scalar @f) {
+            if ($Opt{verbose}) {
+                for my $f (@f) {
+                    print "$o\t$f\n";
+                }
+                printf("$ME: Possibly $c->[1] %d files in '$arg'\n",
+                       scalar @f);
             }
-        }
-        if (defined $xref && $Opt{update}) {
-            printf("$ME: Possibly %s %d source files in '$dir'\n",
-                   ($r eq 'M' ? 'reprocessing' : 'processing'), scalar @f);
-            $xref->process(@f);
+            if (defined $xref && $Opt{update}) {
+                $c->[3]->(@f);
+            }
+        } else {
+            print "$ME: No files $c->[2] in '$arg'.\n";
         }
     }
 }
