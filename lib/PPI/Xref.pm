@@ -900,7 +900,7 @@ sub packages {
 sub __subs_or_packages_and_files {
     my ($self, $key, $cache) = @_;
     unless (defined $self->{result_cache}{$cache}) {
-        return unless $self->{$key};
+        return [] unless $self->{$key};
         my @cache;
         for my $f ($self->__file_ids) {
             for my $s (@{ $self->{$key}{$f} }) {
