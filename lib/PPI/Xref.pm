@@ -835,15 +835,21 @@ sub __missing_modules {
     my $self = shift;
     unless (defined $self->{result_cache}{missing_modules}) {
         $self->{result_cache}{missing_modules} //= [];
+        $self->{result_cache}{missing_modules_files} //= {};
+        $self->{result_cache}{missing_modules_count} //= {};
         return unless $self->{file_missing_modules};
         delete $self->{missing_modules};
+        delete $self->{missing_modules_files};
+        delete $self->{missing_modules_count};
         for my $f ($self->__file_ids) {
             for my $m (keys %{ $self->{file_missing_modules}{$f} }) {
-                $self->{missing_modules}{$m} += $self->{file_missing_modules}{$f}{$m};
+                my $c = $self->{file_missing_modules}{$f}{$m};
+                $self->{missing_modules_files}{$m}{$FILE_BY_ID{$f}} += $c;
+                $self->{missing_modules_count}{$m} += $c;
             }
         }
         $self->{result_cache}{missing_modules} =
-            [ sort keys %{ $self->{missing_modules} } ];
+            [ sort keys %{ $self->{missing_modules_files} } ];
     }
 }
 
@@ -862,12 +868,20 @@ sub module_count {
     return $self->{modules}->{$module} || 0;
 }
 
-# Returns the number of times a missing module was referenced.
+# Returns the files referring a missing module.
+sub missing_module_referrers {
+    my ($self, $module) = @_;
+    $self->__missing_modules;
+    return 0 unless $self->{missing_modules_files}{$module};
+    return sort keys %{ $self->{missing_modules_files}{$module} };
+}
+
+# Returns the times a missing module was referred.
 sub missing_module_count {
     my ($self, $module) = @_;
     $self->__missing_modules;
-    return 0 unless $self->{missing_modules};
-    return $self->{missing_modules}{$module} || 0;
+    return 0 unless $self->{missing_modules_count}{$module};
+    return $self->{missing_modules_count}{$module} || 0;
 }
 
 # Generates the subs or packages.

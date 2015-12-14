@@ -16,23 +16,27 @@ is($xref->missing_module_count('NeverHeardModule'), 0, "never heard");
 
 local $SIG{__WARN__} = \&warner;
 
-my $code = "use NoSuchModule";
+my $code1 = "use NoSuchModule";
+my $code2 = "use NoSuchModuleEither";
 
 undef $@;
-ok($xref->process(\$code), "no such module");
+ok($xref->process(\$code1), "no such module");
 like($@, qr/Failed to find module 'NoSuchModule'/, "expected warning");
 
 is_deeply([$xref->missing_modules], ['NoSuchModule'], "missing modules");
 
-ok($xref->process(\'use NoSuchModuleEither'), "no such module either");
+ok($xref->process(\$code2), "no such module either");
 
 is_deeply([$xref->missing_modules], ['NoSuchModule',
                                      'NoSuchModuleEither'], "one more module");
 
-ok($xref->process(\'use NoSuchModule'), "no such module again");
+ok($xref->process(\$code1), "no such module again");
 
 is($xref->missing_module_count('NoSuchModule'), 2, "heard twice");
 is($xref->missing_module_count('NoSuchModuleEither'), 1, "heard once");
 is($xref->missing_module_count('NeverHeardModule'), 0, "never heard again");
+
+is_deeply([$xref->missing_module_referrers('NoSuchModule')], ['-'],
+          "referring file");
 
 done_testing();
