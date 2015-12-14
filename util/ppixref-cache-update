@@ -13,7 +13,12 @@ our $ME = basename($0);
 
 use Getopt::Long;
 
-my %Opt = ( since => '24 h', time_padding => 1.05, pull => 1 );
+my %Opt = (
+    update  => 0,
+    rebuild => 0,
+    time_padding => 1.05,
+    pull => 1,
+    );
 
 # We pad the --since seconds because of processing overhead.
 # However, there's no point in padding too much, so let's have max.
@@ -87,10 +92,21 @@ usage()
         'pull'              => \$Opt{pull},
         'cache_directory=s' => \$Opt{cache_directory},
         'update'            => \$Opt{update},
+        'rebuild'            => \$Opt{rebuild},
         'verbose'           => \$Opt{verbose},
         'help'              => \$Opt{help},
     );
 usage() if $Opt{help};
+
+unless ($Opt{update} ^ $Opt{rebuild}) {
+    die "$ME: Need exactly one of --update and --rebuild\n";
+}
+
+if (defined $Opt{rebuild} && defined $Opt{since}) {
+    die "$ME: Specifying --since with --rebuild makes no sense\n";
+}
+
+$Opt{since} //= '24 h';
 
 if ($Opt{time_padding} < 1.0 || $Opt{time_padding} > 2.0) {
     die "$ME: Unexpected --time_padding=$Opt{time_padding}\n";
@@ -100,7 +116,7 @@ my $since = parse_since($Opt{since});
 
 print "$ME: since: $since\n";
 
-use File::Find;
+use File::Find qw[find];
 
 my %Cache;
 
@@ -108,15 +124,15 @@ my $xref;
 
 my $cache_directory = $Opt{cache_directory};
 if (defined $cache_directory) {
-    unless ($Opt{update}) {
-        die "$ME: --cache_directory defined but no --update used\n";
+    unless ($Opt{update} || $Opt{rebuild}) {
+        die "$ME: --cache_directory defined but neither --update nor --rebuild used\n";
     }
     use PPI::Xref;
     $xref = PPI::Xref->new({cache_directory => $cache_directory,
                             # cache_verbose => 1,
-                            # process_verbose => 1,
+                            process_verbose => $Opt{verbose},
                            });
-    File::Find::find(
+    find(
         sub {
             if (/\.p[ml]\.cache$/) {
                 my $name = $xref->__unparse_cache_filename($File::Find::name);
@@ -150,46 +166,60 @@ for my $arg (@ARGV) {
 
     my %update;
 
-    if ($git) {
-        unless (-d ".git") {
-            warn "$ME: Skipping '$dir' since found no .git\n";
-            next;
-        }
-        my $pull = qq[git pull];
-        print "$ME: '$pull' in '$dir'\n";
-        unless (system($pull) == 0) {
-            warn "$ME: '$pull' failed in '$dir': $!\n";
-            next;
-        }
-        my $log = qq[git log --reverse --name-status --oneline $since];
-        print "$ME: '$log' in '$dir'\n";
-        my $log_fh;
-        unless (open($log_fh,  "$log |")) {
-            warn "$ME: open(..., '$log |') failed in '$dir': $!\n";
-            next;
-        }
-        while (<$log_fh>) {
-            if (/^([MAD])\s+(.+\.pm)$/) {
-                $update{"$dir/$2"} = $1;
+    sub find_pm_no_git {
+    }
+
+    if ($Opt{update}) {
+        if ($git) {
+            unless (-d ".git") {
+                warn "$ME: Skipping '$dir' since found no .git\n";
+                next;
             }
+            my $pull = qq[git pull];
+            print "$ME: '$pull' in '$dir'\n";
+            unless (system($pull) == 0) {
+                warn "$ME: '$pull' failed in '$dir': $!\n";
+                next;
+            }
+            my $log = qq[git log --reverse --name-status --oneline $since];
+            print "$ME: '$log' in '$dir'\n";
+            my $log_fh;
+            unless (open($log_fh,  "$log |")) {
+                warn "$ME: open(..., '$log |') failed in '$dir': $!\n";
+                next;
+            }
+            while (<$log_fh>) {
+                if (/^([MAD])\s+(.+\.pm)$/) {
+                    $update{"$dir/$2"} = $1;
+                }
+            }
+        } else {
+            if (-d ".git") {
+                warn "$ME: Skipping '$dir' since found .git\n";
+                next;
+            }
+            find(
+                sub {
+                    my $name = $File::Find::name;
+                    if (exists $Cache{$name}) {
+                        $update{$name} = 'M';
+                    }
+                }, $dir);
         }
-    } else {
-        if (-d ".git") {
-            warn "$ME: Skipping '$dir' since found .git\n";
-            next;
-        }
-        File::Find::find(
+    } elsif ($Opt{rebuild}) {
+        find(
             sub {
-                my $name = $File::Find::name;
-                if (exists $Cache{$name}) {
-                    $update{$name} = 'M';
+                if (/\.pm$/) {
+                    my $name = $File::Find::name;
+                    $update{$name} = 'A';
                 }
             }, $dir);
-        for my $c (keys %Cache) {
-            my $cache_filename = $xref->__cache_filename($c);
-            unless (-f $cache_filename) {
-                $update{$c} = 'D';
-            }
+    }
+
+    for my $c (keys %Cache) {
+        my $cache_filename = $xref->__cache_filename($c);
+        unless (-f $cache_filename) {
+            $update{$c} = 'D';
         }
     }
 
@@ -229,7 +259,7 @@ for my $arg (@ARGV) {
                 printf("$ME: Possibly $c->[1] %d files in '$arg'\n",
                        scalar @f);
             }
-            if (defined $xref && $Opt{update}) {
+            if (defined $xref) {
                 $c->[3]->(@f);
             }
         } else {
