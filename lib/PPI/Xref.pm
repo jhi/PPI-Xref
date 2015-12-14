@@ -92,6 +92,9 @@ sub __find_file {
     $self->__inc_dirs;
     unless (exists $self->{inc_file}{$file}) {
         for my $d (@{ $self->{inc_dirs}}) {
+            use File::Spec;
+            $d = File::Spec->rel2abs($d) unless
+                File::Spec->file_name_is_absolute($d);
             my $f = "$d/$file";
             if (-f $f) {
                 $self->{inc_file}{$file} = $f;
