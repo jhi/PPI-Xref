@@ -9,5 +9,4 @@ package A::Y {
 }
 sub a5 {}
 sub x::y {}
-
-
+1;

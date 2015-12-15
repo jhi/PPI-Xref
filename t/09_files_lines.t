@@ -18,10 +18,10 @@ for my $f ($xref->files) {
 
 is_deeply(\@fl,
           [
-           "$lib/A.pm\t13",
-           "$lib/B.pm\t9",
-           "$lib/E.pm\t3",
-           "$lib/F.pm\t2",
+           "$lib/A.pm\t12",
+           "$lib/B.pm\t10",
+           "$lib/E.pm\t4",
+           "$lib/F.pm\t3",
            "$lib/f.pl\t3",
            "$lib/g.pl\t1",
           ],

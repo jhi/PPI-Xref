@@ -7,3 +7,4 @@ package C;
 sub c1 { package D; sub d1 {} }
 require E;
 package D { sub d2 {} }
+1;
