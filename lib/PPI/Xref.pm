@@ -232,6 +232,7 @@ my @CACHE_FIELDS =
        file_packages
        file_subs
        file_missing_modules
+       file_parse_errors
       ];
 
 # Given the href, serialize it to the file.
@@ -440,6 +441,26 @@ sub __clear_cached {
     return 1;
 }
 
+sub __parse_error {
+    my ($self, $file_id, $fileloc, $error) = @_;
+    warn qq[process: $error in $fileloc\n];
+    $self->{file_parse_errors}{$file_id}{$fileloc} = $error;
+}
+
+sub __doc_create {
+    my ($self, $arg, $file, $file_id) = @_;
+    my $doc = PPI::Document->new($arg);
+    if (!defined $doc) {
+        $self->__parse_error($file_id, $file,
+                             "PPI::Document creation failed");
+        return;
+    } elsif (!$doc->complete) {
+        $self->__parse_error($file_id, $file,
+                             "PPI::Document incomplete");
+    }
+    return $doc;
+}
+
 # Process a given filename.
 sub __process_file {
     my ($self, $arg, $file, $process_depth) = @_;
@@ -450,11 +471,8 @@ sub __process_file {
             printf "process: %*s%s\n", $process_depth + 1, ' ', $file;
         }
         my $file_id = $self->__assign_file_id($file);
-        my $doc = PPI::Document->new($arg);
-        unless (defined $doc) {
-            warn "process: PPI::Document creation failed (input: $file)\n";
-            return;
-        }
+        my $doc = $self->__doc_create($arg, $file, $file_id);
+        return unless defined $doc;
         $self->{__docscreated}++;
         $self->__process_id($doc, $file_id, $process_depth);
     } elsif ($self->{seen_file}{$file}) {
@@ -474,11 +492,8 @@ sub __process_file {
             $self->__process_cached_incs($file_id, $process_depth);
             $self->{__cachereads}++;
         } else {
-            my $doc = PPI::Document->new($arg);
-            unless (defined $doc) {
-                warn "process: PPI::Document creation failed (input: $file)\n";
-                return;
-            }
+            my $doc = $self->__doc_create($arg, $file, $file_id);
+            return unless defined $doc;
             $self->__clear_cached($file_id);
             $self->__process_id($doc, $file_id, $process_depth);
             $self->{__docscreated}++;
@@ -586,7 +601,8 @@ sub __process_id {
                 $scope_depth++;
             } elsif ($elem->content eq '}') {
                 if ($scope_depth <= 0) {
-                    warn qq[process: scope pop underflow in $fileloc\n];
+                    $self->__parse_error($file_id, $fileloc,
+                                         "scope pop underflow");
                 } else {
                     $scope_depth--;
                     delete @package{ grep { $_ > $scope_depth } keys %package };
@@ -615,8 +631,7 @@ sub __process_id {
                 if (defined $package && length $package) {
                     # Okay, keep going.
                 } else {
-                    print "process: warning: PPI: missing package in $fileloc\n";
-                }
+                    $self->__parse_error($file_id, $fileloc, "missing package");                }
                 if (defined $prev_package) {
                     if ($package ne $prev_package) {
                         if (0) {
@@ -644,8 +659,8 @@ sub __process_id {
                 my $finish = $elem->block->finish;
                 unless (defined $finish) {
                     # E.g. Devel::Peek:debug_flags() fails to have a finish.
-                    print "process: warning: PPI: missing finish in $fileloc\n";
-                    $finish = $elem;  # Fake it.
+                   $finish = $elem;  # Fake it.
+                   $self->__parse_error($file_id, $fileloc, "missing finish");
                 }
                 push @{ $self->{file_subs}{$file_id} },
                      [
@@ -678,7 +693,7 @@ sub __process_id {
                     next;
                 }
                 unless (defined $include) {
-                    print "process: warning: PPI: missing include in $fileloc\n";
+                    $self->__parse_error($file_id, $fileloc, "missing include");
                     next;
                 }
                 my $last = $children[-1];
@@ -733,8 +748,8 @@ sub __process_id {
         $self->{file_lines}{$file_id} = $elem->line_number;
         $self->__close_package($file_id, $package, $elem);
     } else {
-        my $filename = $FILE_BY_ID{$file_id};
-        print "process: warning: undefined token elem while leaving file '$filename'\n";
+        $self->__parse_error($file_id, $filename,
+                             "undefined token when leaving");
     }
 
     # Mark the __incs_pending as ready to be recursed into.
@@ -888,6 +903,41 @@ sub missing_module_count {
     $self->__missing_modules;
     return 0 unless $self->{missing_modules_count}{$module};
     return $self->{missing_modules_count}{$module} || 0;
+}
+
+# Computes the parse errors.
+sub __parse_errors {
+    my $self = shift;
+    unless (defined $self->{result_cache}{parse_errors_files}) {
+        $self->{result_cache}{parse_errors_files} //= [];
+        return unless $self->{file_parse_errors};
+        delete $self->{parse_errors_files};
+        for my $f ($self->__file_ids) {
+            for my $l (keys %{ $self->{file_parse_errors}{$f} }) {
+                $self->{parse_errors_files}{$FILE_BY_ID{$f}}++;
+            }
+        }
+        $self->{result_cache}{parse_errors_files} =
+            [ sort keys %{ $self->{parse_errors_files} } ];
+    }
+}
+
+# Return the files with parse errors.
+sub parse_errors_files {
+    my $self = shift;
+    $self->__parse_errors;
+    return @{ $self->{result_cache}{parse_errors_files} };
+}
+
+# Return the parse errors in a file, as a hash of filelocation -> error.
+sub file_parse_errors {
+    my ($self, $file) = @_;
+    $self->__parse_errors;
+    return unless defined $file;
+    my $file_id = $self->{file_id}{$file};
+    return unless defined $file_id;
+    return unless exists $self->{file_parse_errors}{$file_id};
+    return %{ $self->{file_parse_errors}{$file_id} };
 }
 
 # Generates the subs or packages.

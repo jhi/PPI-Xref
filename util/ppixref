@@ -14,7 +14,7 @@ Getopt::Long::Configure(qw[no_auto_abbrev]);
 sub short_help_string {
     return <<__EOU__;
 $ME: Usage:
-$ME [--files|--subs|--packages|--modules|--missing_modules] ...
+$ME [--files|--subs|--packages|--modules|--missing_modules|--parse_errors] ...
 $ME [--subs_files|--packages_files] ...
 $ME [--files_lines|--total_lines] ...
 $ME [--incs_files|--incs_chains|--incs_chains_reverse|--incs_deps] ...
@@ -46,7 +46,8 @@ If --code is used, the filename is faked to be '-' in the reports.
 The --files_from_file=file specifies a file to read the filenames
 from, filename per line.  If the filename is '-', STDIN is used.
 The --code, --files_from_file, and specifying files in \@ARGV are
-mutually exclusive.
+mutually exclusive.  Note that the --code argument must be complete,
+e.g. 'use utf8;' must have the semicolon.
 
 The --parse can be used to just parse the inputs (and possibly cache
 the results, if --cache_directory is specified) but not to output
@@ -61,6 +62,9 @@ An "inc" is a "file inclusion", any of the use/no/require/do.
 
 * --missing_modules (default: on) shows the missing modules (in addition
   to warning about them during scan).  Use --nomissing_modules to suppress.
+
+* --parse_errors (default: on) shows the parse errors modules (in addition
+  to warning about them during scan).  Use --noparse_errors to suppress.
 
 * --subs_files, --packages_files, and --incs_files by default show only
   the start line, with --finish they show also the finish, and with
@@ -111,6 +115,7 @@ my %Opt = (
     recurse => 1,
     report_title => 1,
     missing_modules => 1,
+    parse_errors => 1,
  );
 
 help() unless GetOptions('files' => \$Opt{files},
@@ -118,6 +123,7 @@ help() unless GetOptions('files' => \$Opt{files},
                          'packages' => \$Opt{packages},
                          'modules' => \$Opt{modules},
                          'missing_modules' => \$Opt{missing_modules},
+                         'parse_errors' => \$Opt{parse_errors},
                          'total_lines' => \$Opt{total_lines},
                          'files_lines' => \$Opt{files_lines},
                          'subs_files' => \$Opt{subs_files},
@@ -148,7 +154,7 @@ help() unless GetOptions('files' => \$Opt{files},
 help()if $Opt{help};
 long_help() if $Opt{longhelp};
 
-my @ACTION = qw[files subs packages modules missing_modules
+my @ACTION = qw[files subs packages modules missing_modules parse_errors
                 subs_files packages_files files_lines total_lines
                 files_counts modules_counts
                 incs_files incs_deps incs_chains incs_chains_reverse];
@@ -292,6 +298,16 @@ unless ($Opt{parse}) {
             my ($xref, $fh) = @_;
             for my $m ($xref->missing_modules) {
                 print { $fh } $m, $Opt{separator}, $xref->missing_module_count($m), $Opt{separator}, $xref->missing_module_referrers($m), "\n";
+            }
+        },
+        parse_errors => sub {
+            my ($xref, $fh) = @_;
+            for my $f ($xref->parse_errors_files) {
+                my %e = $xref->file_parse_errors($f);
+                my @e = map { "$_: $e{$_}" }
+                        sort { $a cmp $b || $e{$a} cmp $e{$b} }
+                        sort keys %e;
+                print { $fh } $f, "@e", "\n";
             }
         },
         incs_deps => sub {

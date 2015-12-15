@@ -9,7 +9,9 @@ use FindBin qw[$Bin];
 require "$Bin/util.pl";
 my ($xref, $lib) = get_xref();
 
-ok($xref->process(\'use B'), "process string");
+local $SIG{__WARN__} = \&warner;
+
+ok($xref->process(\'use B;'), "process string");
 
 is_deeply([$xref->files],
           [
@@ -23,7 +25,7 @@ is_deeply([$xref->files],
           ],
          "files (including '-')");
 
-ok($xref->process(\'package Xyzzy'), "process string again");
+ok($xref->process(\'package Xyzzy;'), "process string again");
 
 is(scalar(grep { /Xyzzy/ } $xref->packages), 1, "got package");
 
