@@ -449,14 +449,19 @@ sub __parse_error {
 
 sub __doc_create {
     my ($self, $arg, $file, $file_id) = @_;
-    my $doc = PPI::Document->new($arg);
+    my $doc;
+    eval { $doc = PPI::Document->new($arg) };
     if (!defined $doc) {
         $self->__parse_error($file_id, $file,
                              "PPI::Document creation failed");
         return;
-    } elsif (!$doc->complete) {
-        $self->__parse_error($file_id, $file,
-                             "PPI::Document incomplete");
+    } else {
+        my $complete;
+        eval { $complete = $doc->complete };
+        unless ($complete) {
+            $self->__parse_error($file_id, $file,
+                                 "PPI::Document incomplete");
+        }
     }
     return $doc;
 }
