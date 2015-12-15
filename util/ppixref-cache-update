@@ -102,7 +102,7 @@ unless ($Opt{update} ^ $Opt{rebuild}) {
     die "$ME: Need exactly one of --update and --rebuild\n";
 }
 
-if (defined $Opt{rebuild} && defined $Opt{since}) {
+if ($Opt{rebuild} && $Opt{since}) {
     die "$ME: Specifying --since with --rebuild makes no sense\n";
 }
 
@@ -120,31 +120,24 @@ use File::Find qw[find];
 
 my %Cache;
 
-my $xref;
-
 my $cache_directory = $Opt{cache_directory};
-if (defined $cache_directory) {
-    unless ($Opt{update} || $Opt{rebuild}) {
-        die "$ME: --cache_directory defined but neither --update nor --rebuild used\n";
-    }
-    use PPI::Xref;
-    $xref = PPI::Xref->new({cache_directory => $cache_directory,
-                            # cache_verbose => 1,
-                            process_verbose => $Opt{verbose},
-                           });
-    find(
-        sub {
-            if (/\.p[ml]\.cache$/) {
-                my $name = $xref->__unparse_cache_filename($File::Find::name);
-                $Cache{$name}++;
-            }
-        },
-        $cache_directory);
-    printf("$ME: found %d cache files in '$cache_directory'\n",
-           scalar keys %Cache);
-} else {
-    die "$ME: --cache_directory undefined but either --update or --delete used\n";
-}
+die "$ME: Must specify --cache_directory\n" unless defined $cache_directory;
+
+use PPI::Xref;
+my $xref = PPI::Xref->new({cache_directory => $cache_directory,
+                           # cache_verbose => 1,
+                           process_verbose => $Opt{verbose},
+                          });
+find(
+    sub {
+        if (/\.p[ml]\.cache$/) {
+            my $name = $xref->__unparse_cache_filename($File::Find::name);
+            $Cache{$name}++;
+        }
+    },
+    $cache_directory);
+printf("$ME: found %d cache files in '$cache_directory'\n",
+       scalar keys %Cache);
 
 for my $arg (@ARGV) {
     my $dir;
@@ -259,22 +252,18 @@ for my $arg (@ARGV) {
                 printf("$ME: Possibly $c->[1] %d files in '$arg'\n",
                        scalar @f);
             }
-            if (defined $xref) {
-                $c->[3]->(@f);
-            }
+            $c->[3]->(@f);
         } else {
             print "$ME: No files $c->[2] in '$arg'.\n";
         }
     }
 }
 
-if (defined $xref) {
-    printf("$ME: cache reads=%s writes=%s creates=%d updates=%d deletes=%s\n",
-           $xref->cache_reads   || 0,
-           $xref->cache_writes  || 0,
-           $xref->cache_creates || 0,
-           $xref->cache_updates || 0,
-           $xref->cache_deletes || 0);
-}
+printf("$ME: cache reads=%s writes=%s creates=%d updates=%d deletes=%s\n",
+       $xref->cache_reads   || 0,
+       $xref->cache_writes  || 0,
+       $xref->cache_creates || 0,
+       $xref->cache_updates || 0,
+       $xref->cache_deletes || 0);
 
 exit(0);
