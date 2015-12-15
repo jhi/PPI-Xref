@@ -18,6 +18,7 @@ my %Opt = (
     rebuild => 0,
     time_padding => 1.05,
     pull => 1,
+    force => 0,
     );
 
 # We pad the --since seconds because of processing overhead.
@@ -27,8 +28,8 @@ our $MAX_PAD_SEC = 6 * 3600;  # 6h
 sub usage {
     die <<__EOU__
 $ME: Usage:
-$ME [--since=[sha1|'n h'|'n min'|'n s']|--time_padding=1.05|--pull] git:dir ...
-$ME --cache_directory=dir [--update] git:dir ...
+$ME --cache_directory=dir [--update|--rebuild [--force]] git:dir dir ...
+$ME [--since=[sha1|'n h'|'n min'|'n s']|--time_padding=1.05|--pull] git:dir
 $ME --verbose ...
 $ME --help
 
@@ -92,8 +93,9 @@ usage()
         'pull'              => \$Opt{pull},
         'cache_directory=s' => \$Opt{cache_directory},
         'update'            => \$Opt{update},
-        'rebuild'            => \$Opt{rebuild},
+        'rebuild'           => \$Opt{rebuild},
         'verbose'           => \$Opt{verbose},
+        'force'             => \$Opt{force},
         'help'              => \$Opt{help},
     );
 usage() if $Opt{help};
@@ -104,6 +106,10 @@ unless ($Opt{update} ^ $Opt{rebuild}) {
 
 if ($Opt{rebuild} && $Opt{since}) {
     die "$ME: Specifying --since with --rebuild makes no sense\n";
+}
+
+if (!$Opt{rebuild} && $Opt{force}) {
+    die "$ME: Specifying --force without --rebuild makes no sense\n";
 }
 
 $Opt{since} //= '24 h';
@@ -132,12 +138,25 @@ find(
     sub {
         if (/\.p[ml]\.cache$/) {
             my $name = $xref->__unparse_cache_filename($File::Find::name);
-            $Cache{$name}++;
+            $Cache{$name} = $File::Find::name;
         }
     },
     $cache_directory);
+
 printf("$ME: found %d cache files in '$cache_directory'\n",
        scalar keys %Cache);
+
+if ($Opt{rebuild} && $Opt{force}) {
+    print "$ME: Deleting all the cache files because --force\n";
+    for my $f (sort keys %Cache) {
+        my $c = $Cache{$f};
+        if ($c =~ m{^\Q$cache_directory\E/.+\.p[ml]\.cache$}) {
+            unlink($c);
+        } else {
+            die "$ME: Suspicious cachefile '$c', aborting.\n";
+        }
+    }
+}
 
 for my $arg (@ARGV) {
     my $dir;
@@ -158,9 +177,6 @@ for my $arg (@ARGV) {
     }
 
     my %update;
-
-    sub find_pm_no_git {
-    }
 
     if ($Opt{update}) {
         if ($git) {
@@ -209,9 +225,9 @@ for my $arg (@ARGV) {
             }, $dir);
     }
 
-    for my $c (keys %Cache) {
-        my $cache_filename = $xref->__cache_filename($c);
-        unless (-f $cache_filename) {
+    for my $f (sort keys %Cache) {
+        my $c = $Cache{$f};
+        unless (-f $c) {
             $update{$c} = 'D';
         }
     }
