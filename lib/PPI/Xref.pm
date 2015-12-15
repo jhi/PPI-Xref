@@ -19,7 +19,8 @@ my $CODE = 0;
 my %CTOR_OPTS =
     map { $_ => 1} qw/process_verbose cache_verbose
                       recurse INC
-                      cache_directory/;
+                      cache_directory
+                      __allow_relative/;
 
 my $HASHALGO = 'sha1';
 
@@ -92,9 +93,11 @@ sub __find_file {
     $self->__inc_dirs;
     unless (exists $self->{inc_file}{$file}) {
         for my $d (@{ $self->{inc_dirs}}) {
-            use File::Spec;
-            $d = File::Spec->rel2abs($d) unless
-                File::Spec->file_name_is_absolute($d);
+            unless ($self->{opt}{__allow_relative}) {  # For testing.
+                use File::Spec;
+                $d = File::Spec->rel2abs($d) unless
+                    File::Spec->file_name_is_absolute($d);
+            }
             my $f = "$d/$file";
             if (-f $f) {
                 $self->{inc_file}{$file} = $f;

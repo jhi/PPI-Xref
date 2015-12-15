@@ -27,6 +27,7 @@ sub get_xref {
     }
     $lib = [ $lib ] unless ref $lib;
     $xref_opt->{INC} //= $lib;
+    $xref_opt->{__allow_relative} = 1;
     my $xref = PPI::Xref->new($xref_opt);
     is_deeply($xref->INC, $lib, "test lib set");
     return ($xref, ref $lib ? $lib->[0] : $lib, $lib);
