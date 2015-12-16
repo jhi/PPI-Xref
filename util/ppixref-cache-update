@@ -24,6 +24,7 @@ my %Opt = (
 # We pad the --since seconds because of processing overhead.
 # However, there's no point in padding too much, so let's have max.
 our $MAX_PAD_SEC = 6 * 3600;  # 6h
+our $MIN_PAD_SEC = 15;
 
 sub usage {
     die <<__EOU__
@@ -52,7 +53,9 @@ $ME --since='3 min' --time_padding=1.0  # exactly 3 minutes
 The default is --since=$Opt{since}, but with the time padding that ends up being more.
 The --since=time are first converted to seconds, and then multiplied by $Opt{time_padding}.
 
-At most the time padding increases the since value by $MAX_PAD_SEC seconds.
+At most the time padding increases the since value by $MAX_PAD_SEC seconds,
+and at least by $MIN_PAD_SEC seconds.
+
 The padding is done to paper over processing overlap, so that one can
 e.g. daily reprocess and not miss things.  This is obviously an ugly
 hack: for git repositories a better way is to use the exact checksums.
@@ -77,6 +80,7 @@ sub parse_since {
         my $s = $u =~ /^h/ ? 3600 * $t : $u =~ /^m/ ? 60 * $s : $s;
         my $pad_sec = int($s * ($Opt{time_padding} - 1.0));
         $pad_sec = $MAX_PAD_SEC if $pad_sec > $MAX_PAD_SEC;
+        $pad_sec = $MIN_PAD_SEC if $pad_sec < $MIN_PAD_SEC;
         $s += $pad_sec;
         return "--since='$s seconds ago'";
     } elsif ($s =~ m|^[0-9a-f]{6,}|) {
