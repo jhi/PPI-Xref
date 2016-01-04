@@ -148,8 +148,10 @@ if ($Opt{rebuild} && $Opt{force}) {
     print "$ME: Deleting all the cache files because --force\n";
     for my $f (sort keys %Cache) {
         my $c = $Cache{$f};
-        if ($c =~ m{^\Q$cache_directory\E/.+\.p[ml]\.cache$}) {
-            unlink($c);
+        if ($xref->looks_like_cache_file($c)) {  # Paranoia.
+            unless (unlink($c)) {
+                warn "$ME: unlink $c failed: $!\n";
+            }
         } else {
             die "$ME: Suspicious cachefile '$c', aborting.\n";
         }
