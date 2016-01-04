@@ -1443,6 +1443,17 @@ sub incs_chains_iter {
     }, 'PPI::Xref::IncsChainsIter';
 }
 
+sub looks_like_cache_file {
+    my ($self, $file) = @_;
+
+    my $cache_directory = $self->{opt}{cache_directory};
+    return unless defined $cache_directory;
+
+    return 0 if $file =~ m{\.\.};
+
+    return $file =~ m{^\Q$cache_directory\E/.+.cache$};
+}
+
 sub cache_delete {
     my $self = shift;
     my $cache_directory = $self->{opt}{cache_directory};
@@ -1455,14 +1466,14 @@ sub cache_delete {
         if ($file !~ m{^/} ||
             $file =~ m{\.\.} ||
             $file !~ m{\.p[ml](?:\.cache)?$}) {
-            # Paranoia check.
+            # Paranoia check one.
             warn "cache_delete: Skipping unexpected file: '$file'\n";
             next;
         }
         my $cache_file =
             $file =~ /\.cache$/ ? $file : $self->__cache_filename($file);
-        # Paranoia take two.
-        unless ($cache_file =~ m|^$cache_directory/.+.cache$|) {
+        # Paranoia check two.  Both paranoia checks are needed.
+        unless ($self->looks_like_cache_file($cache_file)) {
             warn "cache_delete: Skipping unexpected cache file: '$cache_file'\n";
             next;
         }
