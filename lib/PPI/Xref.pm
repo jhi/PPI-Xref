@@ -308,6 +308,11 @@ sub __write_cachefile {
     }
     $cached->{file_hash} = $hash_current;
 
+    # The mtime is in UTC, and should only be used for
+    # maintenance / statistics.  In other words, it should
+    # NOT be used for uptodateness.
+    $cached->{file_mtime} = (stat($FILE_BY_ID{$file_id}))[9];
+
     # Mark also in the object that we have processed this one.
     $self->{file_hash}{$file_id} = $hash_current;
 
