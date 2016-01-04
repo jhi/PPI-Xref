@@ -138,14 +138,8 @@ my $xref = PPI::Xref->new({cache_directory => $cache_directory,
                            # cache_verbose => 1,
                            process_verbose => $Opt{verbose},
                           });
-find(
-    sub {
-        if (/\.p[ml]\.cache$/) {
-            my $name = $xref->__unparse_cache_filename($File::Find::name);
-            $Cache{$name} = $File::Find::name;
-        }
-    },
-    $cache_directory);
+
+$xref->find_cache_files(\%Cache);
 
 printf("$ME: found %d cache files in '$cache_directory'\n",
        scalar keys %Cache);

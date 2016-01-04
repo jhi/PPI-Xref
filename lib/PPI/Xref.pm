@@ -1494,6 +1494,29 @@ sub __unparse_cache_filename {
     return substr($cache_filename, $cache_prefix_length - 1);
 }
 
+# Given an xref, find all the cache files under its cache directory,
+# and add their filenames to href.
+sub find_cache_files {
+    my ($self, $cache) = @_;
+
+    my $cache_directory = $self->{opt}{cache_directory};
+    unless (defined $cache_directory) {
+        warn "find_cache_files: cache_directory undefined\n";
+        return;
+    }
+
+    use File::Find qw[find];
+
+    find(
+        sub {
+            if (/\.p[ml]\.cache$/) {
+                my $name = $self->__unparse_cache_filename($File::Find::name);
+                $cache->{$name} = $File::Find::name;
+            }
+        },
+        $cache_directory);
+}
+
 1;
 __DATA__
 =pod
