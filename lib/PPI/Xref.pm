@@ -768,11 +768,16 @@ sub __process_id {
     $self->__process_pending_incs($file_id, $process_depth);
 }
 
+sub __trash_cache {
+    my $self = shift;
+    delete $self->{result_cache};
+    delete $self->{seen_file};
+}
+
 # Parse the given filenames (or string, if a scalar ref).
 sub process {
     my $self = shift;
-    delete $self->{result_cache};  # Trash the cache.
-    delete $self->{seen_file};
+    $self->__trash_cache;
     my $success = 1;
     for my $arg (@_) {
         my $file;
