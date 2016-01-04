@@ -40,7 +40,8 @@ sub long_help {
     print short_help_string();
     die <<__EOU__;
 
-The ... is either a list of files, or --code='...', or --files_from_file=file.
+The ... is either a list of files, or --code='...', or --files_from_file=file,
+or --files_from_cache.
 
 If --code is used, the filename is faked to be '-' in the reports.
 The --files_from_file=file specifies a file to read the filenames
@@ -141,6 +142,7 @@ help() unless GetOptions('files' => \$Opt{files},
                          'cache_directory=s' => \$Opt{cache_directory},
                          'code=s' => \$Opt{code},
                          'files_from_file=s' => \$Opt{files_from_file},
+                         'files_from_cache' => \$Opt{files_from_cache},
                          'process_verbose' => \$Opt{process_verbose},
                          'cache_verbose' => \$Opt{cache_verbose},
                          'summary' => \$Opt{summary},
@@ -202,11 +204,17 @@ package Times {
 
 my $t0 = Times->get();
 
+my $source =
+  defined $Opt{code} ? 1 : 0 +
+  defined $Opt{files_from_file} ? 1 : 0 +
+  defined $Opt{files_from_cache} ? 1 : 0 +
+  @ARGV ? 1 : 0;
+
 if (defined $Opt{code}) {
-    help() if @ARGV || defined $Opt{files_from_file};
+    help() if $source > 1;
     $xref->process(\$Opt{code});
 } elsif (defined $Opt{files_from_file}) {
-    help() if @ARGV;
+    help() if $source > 1;
     my $fh;
     if ($Opt{files_from_file} eq '-') {
         $fh = *STDIN;
@@ -224,7 +232,11 @@ if (defined $Opt{code}) {
     } else {
         help();
     }
+} elsif (defined $Opt{files_from_cache}) {
+    help() if $source > 1;
+    $xref->process_files_from_cache(@ARGV);
 } elsif (@ARGV) {
+    help() if $source > 1;
     $xref->process(@ARGV);
 } else {
     help();

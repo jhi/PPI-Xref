@@ -800,6 +800,18 @@ sub process {
     return $success;
 }
 
+sub process_files_from_cache {
+    my $self = shift;
+    my %cache;
+    $self->find_cache_files(\%cache);
+    if ($self->{opt}{cache_verbose}) {
+        my $cache_directory = $self->{opt}{cache_directory};
+        printf("process_files_from_cache: found %d cache files from %s\n",
+               scalar keys %cache, $cache_directory);
+    }
+    $self->process(sort keys %cache);
+}
+
 # Returns the seen filenames.
 sub files {
     my $self = shift;
