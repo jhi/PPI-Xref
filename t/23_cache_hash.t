@@ -25,7 +25,7 @@ ok(-s $cachefile, "non-empty cachefile exists");
 
 my $cache = $xref->__decode_from_file($cachefile);
 
-my $currenthash = $xref->__current_filehash("$lib/B.pm");
+my ($currenthash) = $xref->__current_filehash_and_mtime("$lib/B.pm");
 
 is($cache->{file_hash}, $currenthash, "file_hash matches");
 
