@@ -204,14 +204,22 @@ sub __shadow_filename {
     return File::Spec->catfile($shadowdir, $base);
 }
 
-# The hash checksum for the file.
-sub __current_filehash {
+# The hash checksum for the file, and the mtime timestamp.
+sub __current_filehash_and_mtime {
     my ($self, $origfilename) = @_;
     return unless -f $origfilename;
+    my $origfilefh;
+    unless (open($origfilefh, $origfilename)) {
+        warn qq[Failed to open "$origfilename": $!\n];
+        return;
+    }
     use Digest::SHA;
     my $sha = Digest::SHA->new($HASHALGO);
-    $sha->addfile($origfilename);
-    return "$HASHALGO:". $sha->hexdigest;
+    $sha->addfile($origfilefh);
+    return (
+        "$HASHALGO:". $sha->hexdigest,
+        (stat($origfilefh))[9], # mtime
+        );
 }
 
 # Create the directory of the filename.
@@ -296,7 +304,7 @@ sub __encode_to_file {
 
 # Write the results to the file.
 sub __write_cachefile {
-    my ($self, $cache_filename, $hash_current, $file_id) = @_;
+    my ($self, $cache_filename, $hash_current, $file_id, $file_mtime) = @_;
 
     if ($self->{opt}{cache_verbose}) {
         print "process: writing $cache_filename\n";
@@ -311,7 +319,7 @@ sub __write_cachefile {
     # The mtime is in UTC, and should only be used for
     # maintenance / statistics.  In other words, it should
     # NOT be used for uptodateness.
-    $cached->{file_mtime} = (stat($FILE_BY_ID{$file_id}))[9];
+    $cached->{file_mtime} = $file_mtime;
 
     # Mark also in the object that we have processed this one.
     $self->{file_hash}{$file_id} = $hash_current;
@@ -367,7 +375,8 @@ sub __check_cached {
     my ($self, $origfile) = @_;
     return if $origfile eq '-';
 
-    my $hash_current = $self->__current_filehash($origfile);
+    my ($hash_current, $file_mtime) =
+        $self->__current_filehash_and_mtime($origfile);
     my $cache_directory = $self->{opt}{cache_directory};
     my $cache_filename;
     my $cached;
@@ -401,15 +410,17 @@ sub __check_cached {
     return ($cache_filename,
             $cached,
             $hash_current,
-            $hash_match);
+            $hash_match,
+            $file_mtime);
 }
 
 # Write to the cache and tick various counters.
 sub __to_cache {
-    my ($self, $cache_filename, $hash_current, $file_id) = @_;
+    my ($self, $cache_filename, $hash_current, $file_id, $file_mtime) = @_;
 
     my $had_cache = -f $cache_filename;
-    if ($self->__write_cachefile($cache_filename, $hash_current, $file_id)) {
+    if ($self->__write_cachefile($cache_filename, $hash_current,
+                                 $file_id, $file_mtime)) {
         if ($self->{opt}{cache_verbose}) {
             print "process: writing $cache_filename SUCCESS\n";
         }
@@ -494,7 +505,7 @@ sub __process_file {
             printf "process: %*s%s\n", $process_depth + 1, ' ', $file;
         }
         my $file_id = $self->__assign_file_id($file);
-        my ($cache_filename, $cached, $hash_current, $hash_match) =
+       my ($cache_filename, $cached, $hash_current, $hash_match, $file_mtime) =
             $self->__check_cached($file);
         if ($hash_match) {
             $self->__clear_cached($file_id);
@@ -511,7 +522,8 @@ sub __process_file {
         if (defined $cache_filename &&
             defined $hash_current &&
             !$hash_match) {
-            if ($self->__to_cache($cache_filename, $hash_current, $file_id)) {
+            if ($self->__to_cache($cache_filename, $hash_current,
+                                  $file_id, $file_mtime)) {
                 if (!$hash_match && defined $cached) {
                     $self->{__cacheupdates}++;
                 }
