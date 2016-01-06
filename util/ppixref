@@ -19,6 +19,7 @@ $ME [--subs_files|--packages_files] ...
 $ME [--files_lines|--total_lines] ...
 $ME [--incs_files|--incs_chains|--incs_chains_reverse|--incs_deps] ...
 $ME [--files_founts|--modules_counts] ...
+$ME [--code=... [--auto_semicolon]]
 $ME --parse
 $ME --report_all
 $ME --report_title
@@ -47,8 +48,12 @@ If --code is used, the filename is faked to be '-' in the reports.
 The --files_from_file=file specifies a file to read the filenames
 from, filename per line.  If the filename is '-', STDIN is used.
 The --code, --files_from_file, and specifying files in \@ARGV are
-mutually exclusive.  Note that the --code argument must be complete,
-e.g. 'use utf8;' must have the semicolon.
+mutually exclusive.
+
+Note that the --code argument must be complete, e.g. 'use utf8;' must
+have the semicolon.  For convenience, a semicolon is automatically added
+unless there already is one, or the code argument ends in an end brace.
+This can be disabled with --noauto_semicolon.
 
 The --parse can be used to just parse the inputs (and possibly cache
 the results, if --cache_directory is specified) but not to output
@@ -117,6 +122,7 @@ my %Opt = (
     report_title => 1,
     missing_modules => 1,
     parse_errors => 1,
+    auto_semicolon => 1,
  );
 
 help() unless GetOptions('files' => \$Opt{files},
@@ -141,6 +147,7 @@ help() unless GetOptions('files' => \$Opt{files},
                          'INC=s' => \$Opt{INC},
                          'cache_directory=s' => \$Opt{cache_directory},
                          'code=s' => \$Opt{code},
+                         'auto_semicolon' => \$Opt{auto_semicolon},
                          'files_from_file=s' => \$Opt{files_from_file},
                          'files_from_cache' => \$Opt{files_from_cache},
                          'process_verbose' => \$Opt{process_verbose},
@@ -212,6 +219,11 @@ my $source =
 
 if (defined $Opt{code}) {
     help() if $source > 1;
+    if ($Opt{auto_semicolon}) {
+        unless ($Opt{code} =~ /[;}]\s*$/) {
+            $Opt{code} .= ';';
+        }
+    }
     $xref->process(\$Opt{code});
 } elsif (defined $Opt{files_from_file}) {
     help() if $source > 1;
