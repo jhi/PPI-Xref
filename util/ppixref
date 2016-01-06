@@ -103,7 +103,7 @@ under a directory.  This is usually much faster than processing the
 files from scratch with PPI.  For paranoia, the directory must exist.
 
 The --INC=dir,dir,dir can be used to specify an \@INC different from the
-standard one.
+standard one.  Note the comma-separation.
 
 The --separator default is the tabulator.
 
