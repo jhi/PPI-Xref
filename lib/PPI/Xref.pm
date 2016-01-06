@@ -479,9 +479,13 @@ sub __clear_cached {
 }
 
 sub __parse_error {
-    my ($self, $file_id, $fileloc, $error) = @_;
-    warn qq[process: $error in $fileloc\n];
-    $self->{file_parse_errors}{$file_id}{$fileloc} = $error;
+    my ($self, $file_id, $file, $fileloc, $error) = @_;
+    if (defined $fileloc) {
+        warn qq[process: $error in $fileloc\n];
+    } else {
+        warn qq[process: $error\n];
+    }
+    $self->{file_parse_errors}{$file_id}{$fileloc // $file} = $error;
 }
 
 sub __doc_create {
@@ -489,14 +493,23 @@ sub __doc_create {
     my $doc;
     eval { $doc = PPI::Document->new($arg) };
     unless (defined $doc) {
-        $self->__parse_error($file_id, $file,
+        $self->__parse_error($file_id, $file, $file,
                              "PPI::Document creation failed");
     } else {
         my $complete;
         eval { $complete = $doc->complete };
         unless ($complete) {
-            $self->__parse_error($file_id, $file,
-                                 "PPI::Document incomplete");
+            my $pseudo = $file eq '-';
+            if (!$pseudo && ! -f $file) {
+                $self->__parse_error($file_id, $file, undef,
+                                     "Missing file '$file'");
+            } elsif (!$pseudo && ! -s $file) {
+                $self->__parse_error($file_id, $file, undef,
+                                     "Empty file '$file'");
+            } else {
+                $self->__parse_error($file_id, $file, $file,
+                                     "PPI::Document incomplete");
+            }
         }
     }
     return $doc;
@@ -643,7 +656,7 @@ sub __process_id {
                 $scope_depth++;
             } elsif ($elem->content eq '}') {
                 if ($scope_depth <= 0) {
-                    $self->__parse_error($file_id, $fileloc,
+                    $self->__parse_error($file_id, $filename, $fileloc,
                                          "scope pop underflow");
                 } else {
                     $scope_depth--;
@@ -673,7 +686,10 @@ sub __process_id {
                 if (defined $package && length $package) {
                     # Okay, keep going.
                 } else {
-                    $self->__parse_error($file_id, $fileloc, "missing package");                }
+                    $self->__parse_error($file_id,
+                                         $filename,
+                                         $fileloc, "missing package");
+                }
                 if (defined $prev_package) {
                     if ($package ne $prev_package) {
                         if (0) {
