@@ -266,7 +266,12 @@ sub emit {
     } else {
         $fh = *STDOUT;
     }
-    print { $fh } "=== $opt ===\n" if $Opt{report_title};
+    my $report_title = $Opt{report_title};;
+    if (($opt eq 'missing_modules' && !$xref->missing_modules) ||
+        ($opt eq 'parse_errors' && !$xref->parse_errors_files)) {
+        $report_title = 0;
+    }
+    print { $fh } "=== $opt ===\n" if $report_title;
     $cb->($xref, $fh);
 }
 
