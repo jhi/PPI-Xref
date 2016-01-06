@@ -249,6 +249,18 @@ my @CACHE_FIELDS =
        file_parse_errors
       ];
 
+# Error fields are cache fields but they should not be cleared
+# since they accumulate and are hrefs as opposed to arefs.
+my %CACHE_FIELDS_KEEP =
+    map { $_ => 1 }
+    qw[
+       file_missing_modules
+       file_parse_errors
+      ];
+
+my @CACHE_FIELDS_CLEAR =
+    grep { ! exists $CACHE_FIELDS_KEEP{$_} } @CACHE_FIELDS;
+
 # Given the href, serialize it to the file.
 sub __encode_to_file {
     my ($self, $file, $cached) = @_;
@@ -458,7 +470,7 @@ sub __import_cached {
 sub __clear_cached {
     my ($self, $file_id) = @_;
 
-    for my $k (@CACHE_FIELDS) {
+    for my $k (@CACHE_FIELDS_CLEAR) {
         delete $self->{$k}{$file_id};
     }
 
@@ -475,10 +487,9 @@ sub __doc_create {
     my ($self, $arg, $file, $file_id) = @_;
     my $doc;
     eval { $doc = PPI::Document->new($arg) };
-    if (!defined $doc) {
+    unless (defined $doc) {
         $self->__parse_error($file_id, $file,
                              "PPI::Document creation failed");
-        return;
     } else {
         my $complete;
         eval { $complete = $doc->complete };
@@ -974,7 +985,7 @@ sub __parse_errors {
     my $self = shift;
     unless (defined $self->{result_cache}{parse_errors_files}) {
         $self->{result_cache}{parse_errors_files} //= [];
-        return unless $self->{file_parse_errors};
+        return unless exists $self->{file_parse_errors};
         delete $self->{parse_errors_files};
         for my $f ($self->__file_ids) {
             for my $l (keys %{ $self->{file_parse_errors}{$f} }) {
@@ -997,6 +1008,7 @@ sub parse_errors_files {
 sub file_parse_errors {
     my ($self, $file) = @_;
     $self->__parse_errors;
+    return unless exists $self->{file_parse_errors};
     return unless defined $file;
     my $file_id = $self->{file_id}{$file};
     return unless defined $file_id;
