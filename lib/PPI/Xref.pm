@@ -1134,9 +1134,9 @@ sub __incs_files_full {
         my @cache;
         for my $f ($self->__file_ids) {
             for my $i (@{ $self->{file_incs}{$f} }) {
-                push @cache, [ $f,      # 0: file1
+                push @cache, [ $f,      # 0: fileid1
                                @{$i}[1, # 1: line
-                                     7, # 2: file2
+                                     7, # 2: fileid2
                                      0, # 3: stmt
                                      5, # 4: include_string
                                      2, # 5: col
