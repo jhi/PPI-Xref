@@ -132,6 +132,8 @@ my %Cache;
 
 my $cache_directory = $Opt{cache_directory};
 die "$ME: Must specify --cache_directory\n" unless defined $cache_directory;
+die "$ME: Cache directory '$cache_directory' is not a writeable directory\n"
+    unless -d $cache_directory&& -w $cache_directory;
 
 use PPI::Xref;
 my $xref = PPI::Xref->new({cache_directory => $cache_directory,
