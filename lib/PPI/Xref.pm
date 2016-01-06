@@ -1922,7 +1922,11 @@ Given a name of a missing module, returns the lines that referred it.
 
 Files that had parsing errors, which PPI could not handle.
 
-F<Document incomplete> is the most common parsing pierror.
+F<Document incomplete> is the most common parsing error.
+That means that after parsing the file, PPI was left with
+unbalanced state, like for example opened but not closed
+brace.  This may have been caused by some earlier parsing
+issue.
 
 =head3 file_parse_errors
 
