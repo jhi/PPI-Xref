@@ -733,7 +733,7 @@ sub __process_id {
                     $include_file = $self->__find_module($include_content);
                     $self->{file_modules}{$file_id}{$include_content}++;
                     unless (defined $include_file) {
-                        $self->{file_missing_modules}{$file_id}{$include_content}++;
+                        $self->{file_missing_modules}{$file_id}{$include_content}{$fileloc}++;
                         warn "$Sub: warning: Failed to find module '$include_string' in $fileloc\n";
                     }
                 } elsif ($including_file) {
@@ -909,12 +909,17 @@ sub __missing_modules {
         return unless $self->{file_missing_modules};
         delete $self->{missing_modules};
         delete $self->{missing_modules_files};
+        delete $self->{missing_modules_lines};
         delete $self->{missing_modules_count};
         for my $f ($self->__file_ids) {
+            my $file = $FILE_BY_ID{$f};
             for my $m (keys %{ $self->{file_missing_modules}{$f} }) {
-                my $c = $self->{file_missing_modules}{$f}{$m};
-                $self->{missing_modules_files}{$m}{$FILE_BY_ID{$f}} += $c;
-                $self->{missing_modules_count}{$m} += $c;
+                for my $l (keys %{ $self->{file_missing_modules}{$f}{$m} }) {
+                    my $c = $self->{file_missing_modules}{$f}{$m}{$l};
+                    $self->{missing_modules_files}{$m}{$file} += $c;
+                    $self->{missing_modules_lines}{$m}{$l} += $c;
+                    $self->{missing_modules_count}{$m} += $c;
+                }
             }
         }
         $self->{result_cache}{missing_modules} =
@@ -938,11 +943,19 @@ sub module_count {
 }
 
 # Returns the files referring a missing module.
-sub missing_module_referrers {
+sub missing_module_files {
     my ($self, $module) = @_;
     $self->__missing_modules;
-    return 0 unless $self->{missing_modules_files}{$module};
+    return unless $self->{missing_modules_files}{$module};
     return sort keys %{ $self->{missing_modules_files}{$module} };
+}
+
+# Returns the lines referring a missing module.
+sub missing_module_lines {
+    my ($self, $module) = @_;
+    $self->__missing_modules;
+    return unless $self->{missing_modules_lines}{$module};
+    return sort keys %{ $self->{missing_modules_lines}{$module} };
 }
 
 # Returns the times a missing module was referred.
@@ -1875,11 +1888,17 @@ Modules that are invoked based on a runtime value.  PPI does not do runtime.
 
 Given a name of a missing module, how many times it was referred.
 
-=head3 missing_module_referrers
+=head3 missing_module_files
 
-  @referrers = $xref->missing_module_referrers($modulename)
+  @files = $xref->missing_module_files($modulename)
 
 Given a name of a missing module, returns the files that referred it.
+
+=head3 missing_module_lines
+
+  @lines = $xref->missing_module_lines($modulename)
+
+Given a name of a missing module, returns the lines that referred it.
 
 =head3 parse_errors_files
 

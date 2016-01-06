@@ -36,7 +36,9 @@ is($xref->missing_module_count('NoSuchModule'), 2, "heard twice");
 is($xref->missing_module_count('NoSuchModuleEither'), 1, "heard once");
 is($xref->missing_module_count('NeverHeardModule'), 0, "never heard again");
 
-is_deeply([$xref->missing_module_referrers('NoSuchModule')], ['-'],
+is_deeply([$xref->missing_module_files('NoSuchModule')], ['-'],
           "referring file");
+is_deeply([$xref->missing_module_lines('NoSuchModule')], ['-:1'],
+          "referring lines");
 
 done_testing();
