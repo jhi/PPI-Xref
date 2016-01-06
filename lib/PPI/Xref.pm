@@ -861,7 +861,7 @@ sub total_lines {
     unless (defined $self->{result_cache}{total_lines}) {
         return unless $self->{file_lines};
         use List::Util qw[sum];
-        $self->{result_cache}{total_lines} = sum values %{ $self->{file_lines} };
+        $self->{result_cache}{total_lines} = sum grep { defined } values %{ $self->{file_lines} };
     }
     return $self->{result_cache}{total_lines};
 }
