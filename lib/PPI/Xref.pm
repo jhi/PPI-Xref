@@ -792,7 +792,8 @@ sub __trash_cache {
     delete $self->{seen_file};
 }
 
-# Parse the given filenames (or string, if a scalar ref).
+# Parse the given filenames (or if a scalar ref, a string of code,
+# in which case filename is assumed to be '-').
 sub process {
     my $self = shift;
     $self->__trash_cache;
