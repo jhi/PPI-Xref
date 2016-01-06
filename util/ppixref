@@ -326,7 +326,7 @@ unless ($Opt{parse}) {
         missing_modules => sub {
             my ($xref, $fh) = @_;
             for my $m ($xref->missing_modules) {
-                print { $fh } $m, $Opt{separator}, $xref->missing_module_count($m), $Opt{separator}, $xref->missing_module_referrers($m), "\n";
+                print { $fh } $m, $Opt{separator}, $xref->missing_module_count($m), $Opt{separator}, join($Opt{separator}, $xref->missing_module_referrers($m)), "\n";
             }
         },
         parse_errors => sub {

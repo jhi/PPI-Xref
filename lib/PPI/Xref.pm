@@ -1847,6 +1847,57 @@ Deletions happen quietly: a missing cache file causes no warning.
 
 Returns the number of successful deletions.
 
+=head3 missing_modules
+
+  @modules = $xref->missing_modules()
+
+Modules that were called for via use/no/require/do but which could
+not be found in C<%INC>.
+
+Common reasons include:
+
+=over 8
+
+=item *
+
+Modules that are conditionally invoked, for example based on the operating
+system, or configuration options.
+
+=item *
+
+Modules that are invoked based on a runtime value.  PPI does not do runtime.
+
+=back
+
+=head3 missing_module_count
+
+  $count = $xref->missing_module_count($modulename)
+
+Given a name of a missing module, how many times it was referred.
+
+=head3 missing_module_referrers
+
+  @referrers = $xref->missing_module_referrers($modulename)
+
+Given a name of a missing module, returns the files that referred it.
+
+=head3 parse_errors_files
+
+  @files = $xref->parse_errors_files()
+
+Files that had parsing errors, which PPI could not handle.
+
+F<Document incomplete> is the most common parsing pierror.
+
+=head3 file_parse_errors
+
+  $xref->file_parse_errors($filename)
+
+Given a filename, return a hash of its parse errors.  The keys are the
+error locations (which can be the whole file), the values are the
+error details (which can be just "Document incomplete" in the case
+of the whole file).
+
 =head1 PREREQUISITES
 
 perl 5.14, L<https://search.cpan.org/perldoc?PPI>, L<https://search.cpan.org/perldoc?Sereal>
