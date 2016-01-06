@@ -24,6 +24,12 @@ my %CTOR_OPTS =
 
 my $HASHALGO = 'sha1';
 
+package Sub {  # For getting the current sub name.
+    sub TIESCALAR { bless \$_[1], $_[0] }
+    sub FETCH { (caller(1))[3] }
+}
+tie my $Sub, 'Sub';
+
 sub __is_readwrite_directory {
     my ($self, $dir) = @_;
     return -d $dir && -r $dir && -w $dir;
@@ -255,19 +261,19 @@ sub __encode_to_file {
   COMMIT: {
       my $blob = $self->{encoder}->encode($cached);
       unless (defined $blob) {
-          warn "process: Failed to encode into '$temp'\n";
+          warn "$Sub: Failed to encode into '$temp'\n";
           last COMMIT;
       }
 
       unless ($self->__make_path_file($temp)) {
-          warn "process: Failed to create path for '$temp'\n";
+          warn "$Sub: Failed to create path for '$temp'\n";
           last COMMIT;
       }
 
       my $fh;
       use Fcntl qw[O_CREAT O_WRONLY];
       unless (sysopen($fh, $temp, O_CREAT|O_WRONLY, 0644)) {
-          warn "process: Failed to open '$temp' for writing: $!\n";
+          warn "$Sub: Failed to open '$temp' for writing: $!\n";
           last COMMIT;
       }
 
@@ -275,17 +281,17 @@ sub __encode_to_file {
       my $wrote = syswrite($fh, $blob);
 
       unless (defined $wrote && $wrote == $size) {
-          warn "process: Failed to write $size bytes to '$temp': $!\n";
+          warn "$Sub: Failed to write $size bytes to '$temp': $!\n";
           last COMMIT;
       }
 
       unless (close($fh)) {
-          warn "process: Failed to close '$temp': $!\n";
+          warn "$Sub: Failed to close '$temp': $!\n";
           last COMMIT;
       }
 
       unless (rename($temp, $file)) {
-          warn "process: Failed to rename '$temp' as '$file': !$\n";
+          warn "$Sub: Failed to rename '$temp' as '$file': !$\n";
           last COMMIT;
       }
 
@@ -295,7 +301,7 @@ sub __encode_to_file {
     }  # COMMIT
 
     if (-f $temp) {
-        warn "process: Cleaning temporary file '$temp'\n";
+        warn "$Sub: Cleaning temporary file '$temp'\n";
     }
     unlink $temp;   # In any case.
 
@@ -307,7 +313,7 @@ sub __write_cachefile {
     my ($self, $cache_filename, $hash_current, $file_id, $file_mtime) = @_;
 
     if ($self->{opt}{cache_verbose}) {
-        print "process: writing $cache_filename\n";
+        print "$Sub: writing $cache_filename\n";
     }
 
     my $cached;  # Re-root the data we care about.
@@ -337,12 +343,12 @@ sub __cache_filename {
     return unless defined $cache_directory;
 
     unless ($self->__is_readwrite_directory($cache_directory)) {
-        warn "process: Not a read-write directory '$cache_directory'\n";
+        warn "$Sub: Not a read-write directory '$cache_directory'\n";
         return;
     }
 
     if ($file !~ /\.p[ml]$/) {
-        warn "process: Unexpected filename: '$file'\n";
+        warn "$Sub: Unexpected filename: '$file'\n";
         return;
     }
 
@@ -356,14 +362,14 @@ sub __decode_from_file {
     my $fh;
     use Fcntl qw[O_RDONLY];
     unless (sysopen($fh, $file, O_RDONLY)) {
-        # warn "process: Failed to open '$file' for reading: $!\n";
+        # warn "$Sub: Failed to open '$file' for reading: $!\n";
         return;
     }
 
     my $size = -s $fh;
     my $read = sysread($fh, my $blob, $size);
     unless ($read == $size) {
-        warn "process: Failed to read $size bytes from '$file': $!\n";
+        warn "$Sub: Failed to read $size bytes from '$file': $!\n";
         return;
     }
 
@@ -387,12 +393,12 @@ sub __check_cached {
         $cache_filename = $self->__cache_filename($origfile);
         if (defined $cache_filename) {
             if ($self->{opt}{cache_verbose}) {
-                print "process: reading $cache_filename\n";
+                print "$Sub: reading $cache_filename\n";
             }
             $cached = $self->__decode_from_file($cache_filename);
             if (defined $cached) {
                 if ($self->{opt}{cache_verbose}) {
-                    print "process: reading $cache_filename SUCCESS\n";
+                    print "$Sub: reading $cache_filename SUCCESS\n";
                 }
                 $hash_previous = $cached->{file_hash};
                 $hash_match =
@@ -401,7 +407,7 @@ sub __check_cached {
                     $hash_previous eq $hash_current;
             } else {
                 if ($self->{opt}{cache_verbose}) {
-                    print "process: reading $cache_filename FAILURE\n";
+                    print "$Sub: reading $cache_filename FAILURE\n";
                 }
             }
         }
@@ -422,7 +428,7 @@ sub __to_cache {
     if ($self->__write_cachefile($cache_filename, $hash_current,
                                  $file_id, $file_mtime)) {
         if ($self->{opt}{cache_verbose}) {
-            print "process: writing $cache_filename SUCCESS\n";
+            print "$Sub: writing $cache_filename SUCCESS\n";
         }
         $self->{__cachewrites}++;
         unless ($had_cache) {
@@ -430,7 +436,7 @@ sub __to_cache {
         }
     } else {
         if ($self->{opt}{cache_verbose}) {
-            print "process: writing $cache_filename FAILURE\n";
+            print "$Sub: writing $cache_filename FAILURE\n";
         }
     }
 }
@@ -489,7 +495,7 @@ sub __process_file {
     $self->{file_counts}{$file}++;
     if ($file eq '-') {  # Pseudofile.
         if ($self->{opt}{process_verbose}) {
-            printf "process: %*s%s\n", $process_depth + 1, ' ', $file;
+            printf "$Sub: %*s%s\n", $process_depth + 1, ' ', $file;
         }
         my $file_id = $self->__assign_file_id($file);
         my $doc = $self->__doc_create($arg, $file, $file_id);
@@ -498,11 +504,11 @@ sub __process_file {
         $self->__process_id($doc, $file_id, $process_depth);
     } elsif ($self->{seen_file}{$file}) {
         if ($self->{opt}{process_verbose} && 0) {
-            printf "process: %*s%s [seen]\n", $process_depth + 1, ' ', $file;
+            printf "$Sub: %*s%s [seen]\n", $process_depth + 1, ' ', $file;
         }
     } elsif (! $self->{seen_file}{$file}++) {
         if ($self->{opt}{process_verbose}) {
-            printf "process: %*s%s\n", $process_depth + 1, ' ', $file;
+            printf "$Sub: %*s%s\n", $process_depth + 1, ' ', $file;
         }
         my $file_id = $self->__assign_file_id($file);
        my ($cache_filename, $cached, $hash_current, $hash_match, $file_mtime) =
@@ -727,13 +733,13 @@ sub __process_id {
                     $self->{file_modules}{$file_id}{$include_content}++;
                     unless (defined $include_file) {
                         $self->{file_missing_modules}{$file_id}{$include_content}++;
-                        warn "process: warning: Failed to find module '$include_string' in $fileloc\n";
+                        warn "$Sub: warning: Failed to find module '$include_string' in $fileloc\n";
                     }
                 } elsif ($including_file) {
                     $include_string = $include->string;
                     $include_file = $self->__find_file($include_string);
                     unless (defined $include_file) {
-                        warn "process: warning: Failed to find file '$include_string' in $fileloc\n";
+                        warn "$Sub: warning: Failed to find file '$include_string' in $fileloc\n";
                     }
                 }
                 if (defined $include_file) {
@@ -798,7 +804,7 @@ sub process {
         } elsif (ref $arg eq 'SCALAR') {
             $file = '-';
         } else {
-            warn "process: Unexpected argument '$arg'\n";
+            warn "$Sub: Unexpected argument '$arg'\n";
             $success = 0;
             next;
         }
