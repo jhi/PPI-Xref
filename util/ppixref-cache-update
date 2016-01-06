@@ -124,7 +124,9 @@ if ($Opt{time_padding} < 1.0 || $Opt{time_padding} > 2.0) {
 
 my $since = parse_since($Opt{since});
 
-print "$ME: since: $since\n";
+unless ($Opt{rebuild}) {
+    print "$ME: since: $since\n";
+}
 
 use File::Find qw[find];
 
