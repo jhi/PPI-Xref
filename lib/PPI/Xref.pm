@@ -589,7 +589,6 @@ sub __process_cached_incs {
 # The [6] is the include file, the [7] will become its (new) file id.
 sub __process_pending_incs {
     my ($self, $file_id, $process_depth) = @_;
-
     if ($self->{__incs_flush}{$file_id}) {
         $self->{file_incs}{$file_id} =
             delete $self->{__incs_pending}{$file_id};
