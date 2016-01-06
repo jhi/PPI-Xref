@@ -318,7 +318,9 @@ sub __write_cachefile {
 
     my $cached;  # Re-root the data we care about.
     for my $k (@CACHE_FIELDS) {
-        $cached->{$k} = $self->{$k}{$file_id};
+        if (defined $self->{$k}{$file_id}) {
+            $cached->{$k} = $self->{$k}{$file_id};
+        }
     }
     $cached->{file_hash} = $hash_current;
 
