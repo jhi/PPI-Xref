@@ -17,7 +17,7 @@ my %FILE_BY_ID;
 my $CODE = 0;
 
 my %CTOR_OPTS =
-    map { $_ => 1} qw/process_verbose cache_verbose
+    map { $_ => 1} qw/process_verbose cache_verbose recurse_verbose
                       recurse INC
                       cache_directory
                       __allow_relative/;
@@ -42,6 +42,7 @@ sub new {
     # In the opt you can specify:
     # - process_verbose: for process progress
     # - cache_verbose: for cache activity
+    # - recurse_verbose: for recurse, show revisits
     # - INC: an aref for a custom @INC
     # - recurse: or not (default: yes)
     # - cache_directory: directory where to cache the results
@@ -516,7 +517,7 @@ sub __process_file {
         $self->{__docscreated}++;
         $self->__process_id($doc, $file_id, $process_depth);
     } elsif ($self->{seen_file}{$file}) {
-        if ($self->{opt}{process_verbose} && 0) {
+        if ($self->{opt}{process_verbose} && $self->{opt}{recurse_verbose}) {
             printf "$Sub: %*s%s [seen]\n", $process_depth + 1, ' ', $file;
         }
     } elsif (! $self->{seen_file}{$file}++) {

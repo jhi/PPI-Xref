@@ -31,7 +31,7 @@ sub usage {
 $ME: Usage:
 $ME --cache_directory=dir [--update|--rebuild [--force]] git:dir dir ...
 $ME [--since=[sha1|'n h'|'n min'|'n s']|--time_padding=1.05|--pull] git:dir
-$ME --verbose ...
+$ME --process_verbose|--recurse_verbose|--cache_verbose ...
 $ME --help
 
 The directories must either be git repository roots:
@@ -98,7 +98,9 @@ usage()
         'cache_directory=s' => \$Opt{cache_directory},
         'update'            => \$Opt{update},
         'rebuild'           => \$Opt{rebuild},
-        'verbose'           => \$Opt{verbose},
+        'process_verbose'   => \$Opt{process_verbose},
+        'recurse_verbose'   => \$Opt{recurse_verbose},
+        'cache_verbose'     => \$Opt{cache_verbose},
         'force'             => \$Opt{force},
         'help'              => \$Opt{help},
     );
@@ -139,8 +141,9 @@ die "$ME: Cache directory '$cache_directory' is not a writeable directory\n"
 
 use PPI::Xref;
 my $xref = PPI::Xref->new({cache_directory => $cache_directory,
-                           # cache_verbose => 1,
-                           process_verbose => $Opt{verbose},
+                           process_verbose => $Opt{process_verbose},
+                           recurse_verbose => $Opt{recurse_verbose},
+                           cache_verbose => $Opt{cache_verbose},
                           });
 
 $xref->find_cache_files(\%Cache);
@@ -265,7 +268,7 @@ for my $arg (@ARGV) {
         my $c = $config->{$o};
         my @f = @{ $c->[0] };
         if (scalar @f) {
-            if ($Opt{verbose}) {
+            if ($Opt{process_verbose}) {
                 for my $f (@f) {
                     print "$o\t$f\n";
                 }

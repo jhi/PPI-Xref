@@ -26,7 +26,7 @@ $ME --report_title
 $ME --report_prefix=prefix
 $ME --INC=dir,dir,dir
 $ME --cache_directory=dir
-$ME [--process_verbose|--cache_verbose|--summary]
+$ME [--process_verbose|--recurse_verbose|--cache_verbose|--summary]
 $ME [--separator=s|--column|--finish]
 $ME --recurse|--norecurse
 $ME [--help|--longhelp]
@@ -151,6 +151,7 @@ help() unless GetOptions('files' => \$Opt{files},
                          'files_from_file=s' => \$Opt{files_from_file},
                          'files_from_cache' => \$Opt{files_from_cache},
                          'process_verbose' => \$Opt{process_verbose},
+                         'recurse_verbose' => \$Opt{recurse_verbose},
                          'cache_verbose' => \$Opt{cache_verbose},
                          'summary' => \$Opt{summary},
                          'separator=s' => \$Opt{separator},
@@ -177,12 +178,16 @@ help() unless (any { $Opt{$_} } @ACTION) || $Opt{parse};
 
 $Opt{separator} = "\t" if $Opt{separator} eq '\t';  # Nicer to type in shells.
 
-if ($Opt{process_verbose} || $Opt{cache_verbose} || $Opt{summary}) {
+if ($Opt{process_verbose} ||
+    $Opt{recurse_verbose} ||
+    $Opt{cache_verbose} ||
+    $Opt{summary}) {
     select(STDOUT); $| = 1;
 }
 
 my $xref_opt = {
    process_verbose => $Opt{process_verbose},
+   recurse_verbose => $Opt{recurse_verbose},
    cache_verbose => $Opt{cache_verbose},
    recurse => $Opt{recurse},
 };
