@@ -955,7 +955,10 @@ sub missing_module_lines {
     my ($self, $module) = @_;
     $self->__missing_modules;
     return unless $self->{missing_modules_lines}{$module};
-    return sort keys %{ $self->{missing_modules_lines}{$module} };
+    return map  { "$_->[0]:$_->[1]" }
+           sort { $a->[0] cmp $b->[0] || $a->[1] <=> $b->[1] }
+           map  { /^(.+):(\d+)$/ ? [ $1, $2 ] : [ $_, 0 ] }
+           keys %{ $self->{missing_modules_lines}{$module} };
 }
 
 # Returns the times a missing module was referred.
