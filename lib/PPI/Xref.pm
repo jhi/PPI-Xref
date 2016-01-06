@@ -525,7 +525,8 @@ sub __process_file {
             printf "$Sub: %*s%s\n", $process_depth + 1, ' ', $file;
         }
         my $file_id = $self->__assign_file_id($file);
-       my ($cache_filename, $cached, $hash_current, $hash_match, $file_mtime) =
+        my ($cache_filename, $cached, $hash_current,
+            $hash_match, $file_mtime) =
             $self->__check_cached($file);
         if ($hash_match) {
             $self->__clear_cached($file_id);
