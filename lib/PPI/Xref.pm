@@ -799,12 +799,13 @@ sub process {
     my $success = 1;
     for my $arg (@_) {
         my $file;
-        if (ref $arg eq '') {
+        my $ref = ref $arg;
+        if ($ref eq '') {
             $file = $arg;
-        } elsif (ref $arg eq 'SCALAR') {
+        } elsif ($ref eq 'SCALAR') {
             $file = '-';
         } else {
-            warn "$Sub: Unexpected argument '$arg'\n";
+            warn "$Sub: Unexpected argument '$arg' (ref: $ref)\n";
             $success = 0;
             next;
         }
