@@ -96,6 +96,7 @@ usage()
         'time_padding=f'    => \$Opt{time_padding},
         'pull'              => \$Opt{pull},
         'cache_directory=s' => \$Opt{cache_directory},
+        'files_from_system' => \$Opt{files_from_system},
         'update'            => \$Opt{update},
         'rebuild'           => \$Opt{rebuild},
         'process_verbose'   => \$Opt{process_verbose},
@@ -163,6 +164,14 @@ if ($Opt{rebuild} && $Opt{force}) {
             die "$ME: Suspicious cachefile '$c', aborting.\n";
         }
     }
+}
+
+use Cwd qw[getcwd];
+my $cwd = getcwd();
+
+if ($Opt{files_from_system}) {
+    unshift @ARGV,
+      grep { File::Spec->file_name_is_absolute($_) } @{ $xref->INC };
 }
 
 for my $arg (@ARGV) {
@@ -281,6 +290,8 @@ for my $arg (@ARGV) {
         }
     }
 }
+
+chdir($cwd) or die "$ME: Failed to chdir back to $cwd: $!\n";
 
 printf("$ME: cache reads=%s writes=%s creates=%d updates=%d deletes=%s\n",
        $xref->cache_reads   || 0,
