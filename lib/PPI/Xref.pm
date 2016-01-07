@@ -854,14 +854,26 @@ sub process {
 
 sub process_files_from_cache {
     my $self = shift;
-    my %cache;
-    $self->find_cache_files(\%cache);
-    if ($self->{opt}{cache_verbose}) {
+    my %files;
+    $self->find_cache_files(\%files);
+    if ($self->{opt}{process_verbose} || $self->{opt}{cache_verbose}) {
         my $cache_directory = $self->{opt}{cache_directory};
-        printf("process_files_from_cache: found %d cache files from %s\n",
-               scalar keys %cache, $cache_directory);
+        printf("$Sub: found %d cache files from %s\n",
+               scalar keys %files, $cache_directory);
     }
-    $self->process(sort keys %cache);
+    $self->process(sort keys %files);
+}
+
+sub process_files_from_system {
+    my $self = shift;
+    my %files;
+    $self->find_system_files(\%files);
+    if ($self->{opt}{process_verbose}) {
+        my $cache_directory = $self->{opt}{cache_directory};
+        printf("$Sub: found %d system files from @INC\n",
+               scalar keys %files);
+    }
+    $self->process(sort keys %files);
 }
 
 # Returns the seen filenames.
@@ -1594,11 +1606,11 @@ sub __unparse_cache_filename {
 # Given an xref, find all the cache files under its cache directory,
 # and add their filenames to href.
 sub find_cache_files {
-    my ($self, $cache) = @_;
+    my ($self, $files) = @_;
 
     my $cache_directory = $self->{opt}{cache_directory};
     unless (defined $cache_directory) {
-        warn "find_cache_files: cache_directory undefined\n";
+        warn "$Sub: cache_directory undefined\n";
         return;
     }
 
@@ -1608,10 +1620,28 @@ sub find_cache_files {
         sub {
             if (/\.p[ml]\.cache$/) {
                 my $name = $self->__unparse_cache_filename($File::Find::name);
-                $cache->{$name} = $File::Find::name;
+                $files->{$name} = $File::Find::name;
             }
         },
         $cache_directory);
+}
+
+# Given an xref, find all the pm files under its INC,
+# and add their filenames to href.
+sub find_system_files {
+    my ($self, $files) = @_;
+
+    use File::Find qw[find];
+
+    for my $d (@{ $self->INC }) {
+        find(
+            sub {
+                if (/\.p[ml]$/) {
+                    $files->{$File::Find::name} = $File::Find::name;
+                }
+            },
+            $d);
+    }
 }
 
 1;

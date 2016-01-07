@@ -42,7 +42,7 @@ sub long_help {
     die <<__EOU__;
 
 The ... is either a list of files, or --code='...', or --files_from_file=file,
-or --files_from_cache.
+or --files_from_cache, or --files_from_system.
 
 If --code is used, the filename is faked to be '-' in the reports.
 The --files_from_file=file specifies a file to read the filenames
@@ -150,6 +150,7 @@ help() unless GetOptions('files' => \$Opt{files},
                          'auto_semicolon' => \$Opt{auto_semicolon},
                          'files_from_file=s' => \$Opt{files_from_file},
                          'files_from_cache' => \$Opt{files_from_cache},
+                         'files_from_system' => \$Opt{files_from_system},
                          'process_verbose' => \$Opt{process_verbose},
                          'recurse_verbose' => \$Opt{recurse_verbose},
                          'cache_verbose' => \$Opt{cache_verbose},
@@ -220,6 +221,7 @@ my $source =
   defined $Opt{code} ? 1 : 0 +
   defined $Opt{files_from_file} ? 1 : 0 +
   defined $Opt{files_from_cache} ? 1 : 0 +
+  defined $Opt{files_from_system} ? 1 : 0 +
   @ARGV ? 1 : 0;
 
 if (defined $Opt{code}) {
@@ -251,7 +253,10 @@ if (defined $Opt{code}) {
     }
 } elsif (defined $Opt{files_from_cache}) {
     help() if $source > 1;
-    $xref->process_files_from_cache(@ARGV);
+    $xref->process_files_from_cache();
+} elsif (defined $Opt{files_from_system}) {
+    help() if $source > 1;
+    $xref->process_files_from_system();
 } elsif (@ARGV) {
     help() if $source > 1;
     $xref->process(@ARGV);
