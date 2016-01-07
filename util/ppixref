@@ -216,7 +216,6 @@ package Times {
 my $t0 = Times->get();
 
 if (defined $Opt{files_from_file}) {
-    help() if $source > 1;
     my $fh;
     if ($Opt{files_from_file} eq '-') {
         $fh = *STDIN;
@@ -236,15 +235,12 @@ if (defined $Opt{files_from_file}) {
     }
 }
 if (defined $Opt{files_from_cache}) {
-    help() if $source > 1;
     $xref->process_files_from_cache();
 }
 if (defined $Opt{files_from_system}) {
-    help() if $source > 1;
     $xref->process_files_from_system();
 }
 if (defined $Opt{code}) {
-    help() if $source > 1;
     if ($Opt{auto_semicolon}) {
         unless ($Opt{code} =~ /[;}]\s*$/) {
             $Opt{code} .= ';';
@@ -253,7 +249,6 @@ if (defined $Opt{code}) {
     $xref->process(\$Opt{code});
 }
 if (@ARGV) {
-    help() if $source > 1;
     $xref->process(@ARGV);
 }
 

@@ -481,9 +481,9 @@ sub __clear_cached {
 sub __parse_error {
     my ($self, $file_id, $file, $fileloc, $error) = @_;
     if (defined $fileloc) {
-        warn qq[$Sub: $error in $fileloc\n];
+       warn qq[$Sub: $error in $fileloc\n];
     } else {
-        warn qq[$Sub: $error\n];
+       warn qq[$Sub: $error\n];
     }
     $self->{file_parse_errors}{$file_id}{$fileloc // $file} = $error;
 }
