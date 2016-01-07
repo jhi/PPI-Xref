@@ -809,7 +809,7 @@ sub __process_id {
         $self->__close_package($file_id, $package, $elem);
     } else {
         $self->__parse_error($file_id, $filename,
-                             "undefined token when leaving");
+                             "Undefined token when leaving");
     }
 
     # Mark the __incs_pending as ready to be recursed into.
