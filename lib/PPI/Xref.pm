@@ -807,7 +807,7 @@ sub __process_id {
     if (defined $elem) {
         $self->{file_lines}{$file_id} = $elem->line_number;
         $self->__close_package($file_id, $package, $elem);
-    } else {
+    } elsif (@{ $doc->{children} }) {
         $self->__parse_error($file_id, $filename,
                              "Undefined token when leaving");
     }
