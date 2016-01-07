@@ -331,7 +331,7 @@ unless ($Opt{parse}) {
             my ($xref, $fh) = @_;
             for my $f ($xref->parse_errors_files) {
                 my %e = $xref->file_parse_errors($f);
-                my @e = map { "$e{$_}" }
+                my @e = map { defined $e{$_} ? "$e{$_}" : $_ }
                         sort { $a cmp $b || $e{$a} cmp $e{$b} }
                         sort keys %e;
                 print { $fh } $f, $Opt{separator}, "@e\n";
