@@ -502,10 +502,10 @@ sub __doc_create {
             my $pseudo = $file eq '-';
             if (!$pseudo && ! -f $file) {
                 $self->__parse_error($file_id, $file, undef,
-                                     "Missing file '$file'");
+                                     "Missing file");
             } elsif (!$pseudo && ! -s $file) {
                 $self->__parse_error($file_id, $file, undef,
-                                     "Empty file '$file'");
+                                     "Empty file");
             } else {
                 $self->__parse_error($file_id, $file, $file,
                                      "PPI::Document incomplete");
