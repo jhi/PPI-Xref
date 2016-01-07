@@ -53,7 +53,7 @@ sub new {
     delete @unexpopt{keys %CTOR_OPTS};
 
     for my $k (sort keys %unexpopt) {
-        warn "PPI::Xref::new: unexpected option: $k\n";
+        warn "$Sub: unexpected option: $k\n";
     }
 
     my $self = { opt => $opt };
@@ -61,7 +61,7 @@ sub new {
     my $cache_directory = $opt->{cache_directory};
     if (defined $cache_directory) {
         unless (PPI::Xref->__is_readwrite_directory($cache_directory)) {
-            warn "PPI::Xref:new: cache_directory '$cache_directory': not a read-write directory\n";
+            warn "$Sub: cache_directory '$cache_directory': not a read-write directory\n";
         }
 
         $self->{__cache_prefix_length} = length($cache_directory) + 1;
@@ -198,7 +198,7 @@ sub __shadow_filename {
 
     # Paranoia check.  (Either absolute or relative is fine, though.)
     if ($filename =~ m{\.\.}) {
-        warn "Skipping unexpected file: '$filename'\n";
+        warn "$Sub: Skipping unexpected file: '$filename'\n";
         return;
     }
 
@@ -217,7 +217,7 @@ sub __current_filehash_and_mtime {
     return unless -f $origfilename;
     my $origfilefh;
     unless (open($origfilefh, $origfilename)) {
-        warn qq[Failed to open "$origfilename": $!\n];
+        warn qq[$Sub: Failed to open "$origfilename": $!\n];
         return;
     }
     use Digest::SHA;
@@ -481,9 +481,9 @@ sub __clear_cached {
 sub __parse_error {
     my ($self, $file_id, $file, $fileloc, $error) = @_;
     if (defined $fileloc) {
-        warn qq[process: $error in $fileloc\n];
+        warn qq[$Sub: $error in $fileloc\n];
     } else {
-        warn qq[process: $error\n];
+        warn qq[$Sub: $error\n];
     }
     $self->{file_parse_errors}{$file_id}{$fileloc // $file} = $error;
 }
@@ -1556,7 +1556,7 @@ sub cache_delete {
     my $self = shift;
     my $cache_directory = $self->{opt}{cache_directory};
     unless (defined $cache_directory) {
-        warn "cache_delete: cache_directory undefined\n";
+        warn "$Sub: cache_directory undefined\n";
         return;
     }
     my $delete_count = 0;
@@ -1565,14 +1565,14 @@ sub cache_delete {
             $file =~ m{\.\.} ||
             $file !~ m{\.p[ml](?:\.cache)?$}) {
             # Paranoia check one.
-            warn "cache_delete: Skipping unexpected file: '$file'\n";
+            warn "$Sub: Skipping unexpected file: '$file'\n";
             next;
         }
         my $cache_file =
             $file =~ /\.cache$/ ? $file : $self->__cache_filename($file);
         # Paranoia check two.  Both paranoia checks are needed.
         unless ($self->looks_like_cache_file($cache_file)) {
-            warn "cache_delete: Skipping unexpected cache file: '$cache_file'\n";
+            warn "$Sub: Skipping unexpected cache file: '$cache_file'\n";
             next;
         }
         if ($self->{opt}{cache_verbose}) {
