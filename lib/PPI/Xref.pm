@@ -718,7 +718,9 @@ sub __process_id {
                 unless (defined $finish) {
                     # E.g. Devel::Peek:debug_flags() fails to have a finish.
                    $finish = $elem;  # Fake it.
-                   $self->__parse_error($file_id, $fileloc, "missing finish");
+                   $self->__parse_error($file_id,
+                                        $filename,
+                                        $fileloc, "missing finish");
                 }
                 push @{ $self->{file_subs}{$file_id} },
                      [
