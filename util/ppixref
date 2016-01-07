@@ -47,8 +47,6 @@ or --files_from_cache, or --files_from_system.
 If --code is used, the filename is faked to be '-' in the reports.
 The --files_from_file=file specifies a file to read the filenames
 from, filename per line.  If the filename is '-', STDIN is used.
-The --code, --files_from_file, and specifying files in \@ARGV are
-mutually exclusive.
 
 Note that the --code argument must be complete, e.g. 'use utf8;' must
 have the semicolon.  For convenience, a semicolon is automatically added
@@ -217,13 +215,6 @@ package Times {
 
 my $t0 = Times->get();
 
-my $source =
-  defined $Opt{code} ? 1 : 0 +
-  defined $Opt{files_from_file} ? 1 : 0 +
-  defined $Opt{files_from_cache} ? 1 : 0 +
-  defined $Opt{files_from_system} ? 1 : 0 +
-  @ARGV ? 1 : 0;
-
 if (defined $Opt{code}) {
     help() if $source > 1;
     if ($Opt{auto_semicolon}) {
@@ -232,7 +223,8 @@ if (defined $Opt{code}) {
         }
     }
     $xref->process(\$Opt{code});
-} elsif (defined $Opt{files_from_file}) {
+}
+if (defined $Opt{files_from_file}) {
     help() if $source > 1;
     my $fh;
     if ($Opt{files_from_file} eq '-') {
@@ -251,17 +243,18 @@ if (defined $Opt{code}) {
     } else {
         help();
     }
-} elsif (defined $Opt{files_from_cache}) {
+}
+if (defined $Opt{files_from_cache}) {
     help() if $source > 1;
     $xref->process_files_from_cache();
-} elsif (defined $Opt{files_from_system}) {
+}
+if (defined $Opt{files_from_system}) {
     help() if $source > 1;
     $xref->process_files_from_system();
-} elsif (@ARGV) {
+}
+if (@ARGV) {
     help() if $source > 1;
     $xref->process(@ARGV);
-} else {
-    help();
 }
 
 my $t1 = Times->get();
