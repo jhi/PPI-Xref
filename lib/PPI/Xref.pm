@@ -14,7 +14,6 @@ use PPI::Document;
 # on leaving the API boundary.
 my $FILE_ID = 0;
 my %FILE_BY_ID;
-my $CODE = 0;
 
 my %CTOR_OPTS =
     map { $_ => 1} qw/process_verbose cache_verbose recurse_verbose
@@ -1463,7 +1462,7 @@ sub __incs_chains_iter {
                   SUCC: {
                       if (exists $deps->{line}{$curr}) {
                           for my $line (sort { $a <=> $b }
-                                        keys $deps->{line}{$curr}) {
+                                        keys %{ $deps->{line}{$curr} }) {
                               for my $succ (sort { $a cmp $b }
                                             keys %{ $deps->{line}{$curr}{$line} }) {
                                   unless ($iterself->{seen}{$succ}{$line}++) {
