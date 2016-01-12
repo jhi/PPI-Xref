@@ -7,7 +7,7 @@ our $VERSION = '0.001';
 use strict;
 use warnings;
 
-use PPI::Document;
+use PPI;
 
 # We will use file ids (integers) instead of filenames, mainly for
 # space savings, but also speed, and only convert back to filenames
