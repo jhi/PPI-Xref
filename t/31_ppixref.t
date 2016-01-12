@@ -6,7 +6,7 @@ use warnings;
 my $fh;
 
 ok(open($fh,
-        "perl -Ilib util/ppixref --code='use utf8' --files --subs --subs_files --incs_files |"),
+        "$^X -Ilib util/ppixref --code='use utf8' --files --subs --subs_files --incs_files |"),
    "start ppixref");
 
 my %files;
