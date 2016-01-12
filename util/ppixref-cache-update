@@ -3,8 +3,6 @@
 # Script for updating a ppixref cache directory based
 # on one or more git repositories.
 
-# TODO: allow indexing a directory (either git or plain) from scratch
-
 use strict;
 use warnings;
 
