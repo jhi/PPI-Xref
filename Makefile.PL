@@ -8,6 +8,7 @@ WriteMakefile(
                            "PPI" => 0,
                            "Sereal::Decoder" => 0,
                            "Sereal::Encoder" => 0,
+                           "List::Util" => '1.33',  # any()
                          },
     TEST_REQUIRES     => { "Test::More" => 0 },
     EXE_FILES         => [ qw[util/ppixref util/ppixref-cache-update] ],
