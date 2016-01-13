@@ -2,7 +2,7 @@ package PPI::Xref;
 
 require v5.10;  # For defined-or
 
-our $VERSION = '0.004';
+our $VERSION = '0.005';
 
 use strict;
 use warnings;
