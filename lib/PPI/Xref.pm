@@ -1,6 +1,6 @@
 package PPI::Xref;
 
-use v5.14;
+require v5.10;  # For defined-or
 
 our $VERSION = '0.004';
 
