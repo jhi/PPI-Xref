@@ -28,6 +28,7 @@ sub get_xref {
         $lib = delete $xref_opt->{abslib} ? get_abslib() : get_rellib();
     }
     $lib = [ $lib ] unless ref $lib;
+    $lib = [ grep { -d } @{ $lib } ];
     $xref_opt->{INC} //= $lib;
     $xref_opt->{__allow_relative} = 1;
     my $xref = PPI::Xref->new($xref_opt);
