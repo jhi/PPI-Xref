@@ -191,6 +191,17 @@ sub __close_open_package {
     $self->__open_package($file_id, $new_package, $new_elem);
 }
 
+# Function for portably turning the directory portion of a pathname
+# into a directory name.  Loses information in platforms that have
+# a volume name in pathnames, but the main idea is to safely split
+# the argument into a new directory name (possibly modified by
+# prepending the volume name as a directory), and the filename.
+sub __safe_dir_and_file {
+    my ($self, $path) = @_;
+    my ($vol, $dirs, $file) =  File::Spec->splitpath($path);
+    return (File::Spec->catdir(grep { length } ($vol, $dirs)), $file);
+}
+
 # "shadow file" is a filename rooted into a new, "shadow", directory.
 sub __shadow_filename {
     my ($self, $shadowdir, $filename) = @_;
@@ -202,14 +213,11 @@ sub __shadow_filename {
     }
 
     use File::Spec;
-    my $base =
+    my $absfile =
         File::Spec->file_name_is_absolute($filename) ?
         $filename :
         File::Spec->rel2abs($filename);
-    my ($vol, $dirs, $file) =
-      File::Spec->splitpath( $base );
-    my @dirs = grep { length } ( $vol, $dirs );
-    my $redir = File::Spec->catdir(@dirs);
+    my ($redir, $file) = $self->__safe_dir_and_file($absfile);
     return File::Spec->catfile($shadowdir, $redir, $file);
 }
 
@@ -233,10 +241,9 @@ sub __current_filehash_and_mtime {
 
 # Create the directory of the filename.
 sub __make_path_file {
-    my ($self, $file) = @_;
+    my ($self, $base) = @_;
     use File::Path qw[make_path];
-    use File::Basename qw[dirname];
-    my $dir = dirname($file);
+    my ($dir, $file) = $self->__safe_dir_and_file($base);
     return eval { make_path($dir) unless -d $dir; 1; };
 }
 
