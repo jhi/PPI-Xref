@@ -1,6 +1,8 @@
 use strict;
 use warnings;
 
+$ENV{LC_ALL} = 'C';  # Enforce consistent sort() results for tests.
+
 sub get_abslib {
     use FindBin qw[$Bin];
     my $relbin = $Bin;
