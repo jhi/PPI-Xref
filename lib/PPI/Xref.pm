@@ -1600,7 +1600,7 @@ sub __unparse_cache_filename {
     return unless length($cache_filename) > $cache_prefix_length;
 
     my $prefix = substr($cache_filename, 0, $cache_prefix_length);
-    return unless $prefix eq "$cache_directory/";
+    return unless $prefix =~ m{^\Q$cache_directory\E(?:/|\\)$};
 
     return substr($cache_filename, $cache_prefix_length - 1);
 }
