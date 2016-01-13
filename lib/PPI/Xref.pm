@@ -721,6 +721,7 @@ sub __process_id {
                 # sub ...
                 my $sub = $elem->name;
                 unless ($sub =~ /::/) {  # sub x::y::z { ... }
+                    $package //= 'main';
                     $sub = "$package::$sub";
                 }
                 my $finish = $elem->block->finish;
