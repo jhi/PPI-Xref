@@ -206,8 +206,11 @@ sub __shadow_filename {
         File::Spec->file_name_is_absolute($filename) ?
         $filename :
         File::Spec->rel2abs($filename);
-    $base =~ s{^/}{};
-    return File::Spec->catfile($shadowdir, $base);
+    my ($vol, $dirs, $file) =
+      File::Spec->splitpath( $base );
+    my @dirs = grep { length } ( $vol, $dirs );
+    my $redir = File::Spec->catdir(@dirs);
+    return File::Spec->catfile($shadowdir, $redir, $file);
 }
 
 # The hash checksum for the file, and the mtime timestamp.
