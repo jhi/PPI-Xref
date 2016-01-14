@@ -1,6 +1,6 @@
 package PPI::Xref;
 
-require v5.10;  # For defined-or
+require v5.14;  # 5.10: defined-or; 5.14: package Sub { ... }
 
 our $VERSION = '0.006';
 
