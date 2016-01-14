@@ -15,10 +15,11 @@ my ($xref, $lib) = get_xref({cache_directory     => $cache_directory,
                              cache_verbose => 1,
                              abslib       => 1});
 
-ok($xref->process("$lib/B.pm"), "process file");
+ok($xref->process("$lib/B.pm"), "process file $lib/B.pm");
 
-my $cachefile = "$cache_directory/$lib/B.pm.cache";
-ok(-s $cachefile, "non-empty cachefile exists");
+my $cachefile = File::Spec->catfile($cache_directory, PPI::Xref->__safe_dir_and_file("$lib/B.pm.cache", 1));
+
+ok(-s $cachefile, "non-empty cachefile exists ($cachefile)");
 
 # Using the internal utilities here for testing is a bit evil, but
 # reimplementing the code here for testing would be even more evil.
