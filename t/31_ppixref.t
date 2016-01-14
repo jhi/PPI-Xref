@@ -3,10 +3,13 @@ use Test::More;
 use strict;
 use warnings;
 
+use File::Spec;
+my $ppixref = File::Spec->catfile("util", "ppixref");
+
 my $fh;
 
 ok(open($fh,
-        "$^X -Ilib util/ppixref --code='use utf8' --files --subs --subs_files --incs_files |"),
+        "$^X -Ilib $ppixref --code='use utf8' --files --subs --subs_files --incs_files |"),
    "start ppixref");
 
 my %files;
