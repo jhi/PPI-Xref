@@ -197,8 +197,11 @@ sub __close_open_package {
 # the argument into a new directory name (possibly modified by
 # prepending the volume name as a directory), and the filename.
 sub __safe_dir_and_file {
-    my ($self, $path) = @_;
+    my ($self, $path, $removecolon) = @_;
     my ($vol, $dirs, $file) =  File::Spec->splitpath($path);
+    if ($removecolon && $^O eq 'MSWin32') {
+      $vol =~ s/:$//;
+    }
     return (File::Spec->catdir(grep { length } ($vol, $dirs)), $file);
 }
 
@@ -217,7 +220,7 @@ sub __shadow_filename {
         File::Spec->file_name_is_absolute($filename) ?
         $filename :
         File::Spec->rel2abs($filename);
-    my ($redir, $file) = $self->__safe_dir_and_file($absfile);
+    my ($redir, $file) = $self->__safe_dir_and_file($absfile, 1);
     return File::Spec->catfile($shadowdir, $redir, $file);
 }
 
