@@ -192,14 +192,35 @@ sub __close_open_package {
 }
 
 # Function for portably turning the directory portion of a pathname
-# into a directory name.  Loses information in platforms that have
-# a volume name in pathnames, but the main idea is to safely split
-# the argument into a new directory name (possibly modified by
-# prepending the volume name as a directory), and the filename.
-sub __safe_dir_and_file {
-    my ($self, $path) = @_;
+# into a directory name.  If the $flatten_volume is true, loses
+# information in platforms that have a volume name in pathnames, but
+# the main idea is to safely split the argument into a new directory
+# name (possibly modified by prepending the volume name as a
+# directory), and the filename.  E.g.  '/a/b/c' -> ('/a/b', 'c')
+# 'c:/d/e' -> ('/c/d', 'e')
+sub __safe_vol_dir_file {
+    my ($self, $path, $flatten_volume) = @_;
     my ($vol, $dirs, $file) =  File::Spec->splitpath($path);
-    return (File::Spec->catdir(grep { length } ($vol, $dirs)), $file);
+    if ($flatten_volume && $^O eq 'MSWin32') {
+      $vol =~ s/:$//;  # splitpath() leaves the $vol as e.g. "c:"
+    }
+    return (File::Spec->catpath($vol, $dirs), $file);
+}
+
+# Returns the directory part and the file part.  Note that this will
+# convert the volume name (if any) in the $path into a directory name,
+# e.g. 'c:/d/e' -> ('/c/d', 'e').  This is useful for re-rooting
+# a pathname under a new directory.
+sub __safe_dir_and_file_flatten_volume {
+  my ($self, $path) = @_;
+  return $self->__safe_vol_dir_file($path, 1);
+}
+
+# Returns the directory part (with the possible volume part prepended)
+# and the file part.  Kind of like a safe dirname().
+sub __safe_dir_and_file_same_volume {
+  my ($self, $path) = @_;
+  return $self->__safe_vol_dir_file($path, 0);
 }
 
 # "shadow file" is a filename rooted into a new, "shadow", directory.
@@ -217,7 +238,7 @@ sub __shadow_filename {
         File::Spec->file_name_is_absolute($filename) ?
         $filename :
         File::Spec->rel2abs($filename);
-    my ($redir, $file) = $self->__safe_dir_and_file($absfile);
+    my ($redir, $file) = $self->__safe_dir_and_file_flatten_volume($absfile);
     return File::Spec->catfile($shadowdir, $redir, $file);
 }
 
@@ -243,7 +264,7 @@ sub __current_filehash_and_mtime {
 sub __make_path_file {
     my ($self, $base) = @_;
     use File::Path qw[make_path];
-    my ($dir, $file) = $self->__safe_dir_and_file($base);
+    my ($dir, $file) = $self->__safe_dir_and_file_same_volume($base);
     return eval { make_path($dir) unless -d $dir; 1; };
 }
 
@@ -376,6 +397,7 @@ sub __cache_filename {
         return;
     }
 
+    # TODO: This will break for filesystems with only one dot allowed.
     return $self->__shadow_filename($cache_directory, "$file.cache");
 }
 

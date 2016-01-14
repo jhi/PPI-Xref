@@ -22,7 +22,8 @@ ok($xref->process("$lib/B.pm"), "process file");
 # Users of the public APIs must close their eyes now. 
 
 my $cachefile = $xref->__cache_filename("$lib/B.pm");
-ok(-s $cachefile, "non-empty cachefile exists");
+
+cachefile_sanity($cachefile, $cache_directory);
 
 is($xref->__unparse_cache_filename($cachefile), "$lib/B.pm", "unparse");
 

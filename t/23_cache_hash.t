@@ -17,8 +17,9 @@ my ($xref, $lib) = get_xref({cache_directory     => $cache_directory,
 
 ok($xref->process("$lib/B.pm"), "process file");
 
-my $cachefile = "$cache_directory/$lib/B.pm.cache";
-ok(-s $cachefile, "non-empty cachefile exists");
+my $cachefile = $xref->__cache_filename("$lib/B.pm");
+
+cachefile_sanity($cachefile, $cache_directory);
 
 # Using the internal utilities here for testing is a bit evil, but
 # reimplementing the code here for testing would be even more evil.

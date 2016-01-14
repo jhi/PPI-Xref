@@ -42,4 +42,12 @@ sub warner {
     print "# warning: $@\n";
 }
 
+sub cachefile_sanity {
+  my ($cachefile, $cache_directory) = @_;
+  ok(-s $cachefile, "non-empty cachefile exists");
+  like($cachefile, qr/\.cache$/, "cachefile ends in .cache");
+  like($cachefile, qr/\Q$cache_directory\E/,
+       "cachefile path contains the cache directory");
+}
+
 1;

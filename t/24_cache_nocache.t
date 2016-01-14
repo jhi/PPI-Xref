@@ -32,8 +32,8 @@ is($lib1, $lib0, "the same lib");
 
 ok($xref1->process("$lib1/B.pm"), "process file");
 
-my $cachefile1 = "$cache_directory/$lib1/B.pm.cache";
-ok(-s $cachefile1, "non-empty cachefile exists");
+cachefile_sanity($xref1->__cache_filename("$lib1/B.pm"),
+                $cache_directory);
 
 is_deeply([$xref1->subs], [$xref0->subs], "subs");
 is_deeply([$xref1->files], [$xref0->files], "files");
