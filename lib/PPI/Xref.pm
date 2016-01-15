@@ -1646,6 +1646,17 @@ sub __unparse_cache_filename {
 
     $path =~ s{_(p[ml])$}{\.$1};  # _pm -> .pm, _pl -> .pl
 
+    if ($^O eq 'MSWin32') {
+      # \c\a\b -> c:/a/b
+      $path =~ s{\\}{/}g;
+      if ($path =~ m{^/([A-Z])(/.+)}) {
+        my $volpath = "$1:$2";
+        if (-f $volpath) {
+          $path = $volpath;
+        }
+      }
+    }
+
     return $path;
 }
 
