@@ -378,6 +378,8 @@ sub __write_cachefile {
     return $self->__encode_to_file($cache_filename, $cached);
 }
 
+my $CACHE_EXT = '.cache';
+
 # Compose a cache filename, given an original filename.
 # The filenames are re-rooted in the cache_directory.
 sub __cache_filename {
@@ -398,7 +400,7 @@ sub __cache_filename {
     }
 
     # TODO: This will break for filesystems with only one dot allowed.
-    return $self->__shadow_filename($cache_directory, "$file.cache");
+    return $self->__shadow_filename($cache_directory, "$file$CACHE_EXT");
 }
 
 # Deserialize from the file.
@@ -1581,7 +1583,7 @@ sub looks_like_cache_file {
 
     return 0 if $file =~ m{\.\.};
 
-    return $file =~ m{^\Q$cache_directory\E/.+.cache$};
+    return $file =~ m{^\Q$cache_directory\E/.+\Q$CACHE_EXT\E$};
 }
 
 sub cache_delete {
@@ -1595,13 +1597,14 @@ sub cache_delete {
     for my $file (@_) {
         if (!File::Spec->file_name_is_absolute($file) ||
             $file =~ m{\.\.} ||
-            $file !~ m{\.p[ml](?:\.cache)?$}) {
+            $file !~ m{\.p[ml](?:\Q$CACHE_EXT\E)?$}) {
             # Paranoia check one.
             warn "$Sub: Skipping unexpected file: '$file'\n";
             next;
         }
         my $cache_file =
-            $file =~ /\.cache$/ ? $file : $self->__cache_filename($file);
+            $file =~ /\Q$CACHE_EXT\E$/ ?
+            $file : $self->__cache_filename($file);
         # Paranoia check two.  Both paranoia checks are needed.
         unless ($self->looks_like_cache_file($cache_file)) {
             warn "$Sub: Skipping unexpected cache file: '$cache_file'\n";
@@ -1624,7 +1627,7 @@ sub __unparse_cache_filename {
     my $cache_directory = $self->{opt}{cache_directory};
     return unless defined $cache_directory;
 
-    return unless $cache_filename =~ s{\.cache$}{};
+    return unless $cache_filename =~ s{\Q$CACHE_EXT\E$}{};
 
     my $cache_prefix_length = $self->{__cache_prefix_length};
     return unless length($cache_filename) > $cache_prefix_length;
@@ -1650,7 +1653,7 @@ sub find_cache_files {
 
     find(
         sub {
-            if (/\.p[ml]\.cache$/) {
+            if (/\.p[ml]\Q$CACHE_EXT\E$/) {
                 my $name = $self->__unparse_cache_filename($File::Find::name);
                 $files->{$name} = $File::Find::name;
             }
