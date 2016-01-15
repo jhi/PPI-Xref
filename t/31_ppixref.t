@@ -3,13 +3,14 @@ use Test::More;
 use strict;
 use warnings;
 
-use File::Spec;
-my $ppixref = File::Spec->catfile("util", "ppixref");
+# We are going to test a command line invocation,
+# do not bother if this does not look unixy enough.
+plan(skip_all => "does not look like unixy enough") unless -x '/bin/ls';
 
 my $fh;
 
 ok(open($fh,
-        "$^X -Ilib $ppixref --code='use utf8' --files --subs --subs_files --incs_files |"),
+        "$^X -Ilib util/ppixref --code='use utf8' --files --subs --subs_files --incs_files |"),
    "start ppixref");
 
 my %files;
