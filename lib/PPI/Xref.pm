@@ -223,8 +223,10 @@ sub __safe_dir_and_file_same_volume {
   return $self->__safe_vol_dir_file($path, 0);
 }
 
+my $CACHE_EXT = '.cache';
+
 # "shadow file" is a filename rooted into a new, "shadow", directory.
-sub __shadow_filename {
+sub __shadow_cache_filename {
     my ($self, $shadowdir, $filename) = @_;
 
     # Paranoia check.  (Either absolute or relative is fine, though.)
@@ -239,7 +241,14 @@ sub __shadow_filename {
         $filename :
         File::Spec->rel2abs($filename);
     my ($redir, $file) = $self->__safe_dir_and_file_flatten_volume($absfile);
-    return File::Spec->catfile($shadowdir, $redir, $file);
+
+    # For portable filenames, we cannot just keep on
+    # appending filename extensions with dots, and we
+    # are going to append the cache filename extension.
+    # So we mangle the .pm or .pl as _pm and _pl.
+    $file =~ s{\.(p[ml])$}{_$1};
+
+    return File::Spec->catfile($shadowdir, $redir, $file . $CACHE_EXT);
 }
 
 # The hash checksum for the file, and the mtime timestamp.
@@ -378,13 +387,11 @@ sub __write_cachefile {
     return $self->__encode_to_file($cache_filename, $cached);
 }
 
-my $CACHE_EXT = '.cache';
-
 # Compose a cache filename, given an original filename.
 # The filenames are re-rooted in the cache_directory.
 sub __cache_filename {
-    my ($self, $file) = @_;
-    return if $file eq '-';
+    my ($self, $path) = @_;
+    return if $path eq '-';
 
     my $cache_directory = $self->{opt}{cache_directory};
     return unless defined $cache_directory;
@@ -394,13 +401,12 @@ sub __cache_filename {
         return;
     }
 
-    if ($file !~ /\.p[ml]$/) {
-        warn "$Sub: Unexpected filename: '$file'\n";
+    if ($path !~ /\.p[ml]$/) {
+        warn "$Sub: Unexpected filename: '$path'\n";
         return;
     }
 
-    # TODO: This will break for filesystems with only one dot allowed.
-    return $self->__shadow_filename($cache_directory, "$file$CACHE_EXT");
+    return $self->__shadow_cache_filename($cache_directory, $path);
 }
 
 # Deserialize from the file.
@@ -1597,7 +1603,8 @@ sub cache_delete {
     for my $file (@_) {
         if (!File::Spec->file_name_is_absolute($file) ||
             $file =~ m{\.\.} ||
-            $file !~ m{\.p[ml](?:\Q$CACHE_EXT\E)?$}) {
+            ($file !~ m{_p[ml](?:\Q$CACHE_EXT\E)?$} &&
+             $file !~ m{.p[ml]$})) {
             # Paranoia check one.
             warn "$Sub: Skipping unexpected file: '$file'\n";
             next;
@@ -1635,7 +1642,11 @@ sub __unparse_cache_filename {
     my $prefix = substr($cache_filename, 0, $cache_prefix_length);
     return unless $prefix =~ m{^\Q$cache_directory\E(?:/|\\)$};
 
-    return substr($cache_filename, $cache_prefix_length - 1);
+    my $path = substr($cache_filename, $cache_prefix_length - 1);
+
+    $path =~ s{_(p[ml])$}{\.$1};  # _pm -> .pm, _pl -> .pl
+
+    return $path;
 }
 
 # Given an xref, find all the cache files under its cache directory,
