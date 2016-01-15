@@ -1593,7 +1593,7 @@ sub cache_delete {
     }
     my $delete_count = 0;
     for my $file (@_) {
-        if ($file !~ m{^/} ||
+        if (!File::Spec->file_name_is_absolute($file) ||
             $file =~ m{\.\.} ||
             $file !~ m{\.p[ml](?:\.cache)?$}) {
             # Paranoia check one.
