@@ -114,7 +114,7 @@ The --cacheverbose turns on verbose cache access.
 __EOU__
 }
 
-my %Opt = (
+my %OptDefault = (
     separator => "\t",
     recurse => 1,
     report_title => 1,
@@ -122,6 +122,8 @@ my %Opt = (
     parse_errors => 1,
     auto_semicolon => 1,
  );
+
+my %Opt = %OptDefault;
 
 help() unless GetOptions('files' => \$Opt{files},
                          'subs' => \$Opt{subs},
@@ -160,7 +162,7 @@ help() unless GetOptions('files' => \$Opt{files},
                          'help' => \$Opt{help},
                          'longhelp' => \$Opt{longhelp});
 
-help()if $Opt{help};
+help() if $Opt{help};
 long_help() if $Opt{longhelp};
 
 my @ACTION = qw[files subs packages modules missing_modules parse_errors
@@ -173,7 +175,10 @@ if ($Opt{report_all}) {
 }
 
 use List::Util qw[any];
-help() unless (any { $Opt{$_} } @ACTION) || $Opt{parse};
+help() unless (any { $Opt{$_} }
+               grep { ! $OptDefault{$_} }
+               @ACTION) ||
+               $Opt{parse};
 
 $Opt{separator} = "\t" if $Opt{separator} eq '\t';  # Nicer to type in shells.
 
