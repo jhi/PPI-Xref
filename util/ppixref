@@ -11,107 +11,44 @@ my $ME = basename($0);
 use Getopt::Long;
 Getopt::Long::Configure(qw[no_auto_abbrev]);
 
-sub short_help_string {
-    return <<__EOU__;
-$ME: Usage:
-$ME [--files|--subs|--packages|--modules|--missing_modules|--parse_errors] ...
-$ME [--subs_files|--packages_files] ...
-$ME [--files_lines|--total_lines] ...
-$ME [--incs_files|--incs_chains|--incs_chains_reverse|--incs_deps] ...
-$ME [--files_founts|--modules_counts] ...
-$ME [--code=... [--auto_semicolon]]
-$ME --parse
-$ME --report_all
-$ME --report_title
-$ME --report_prefix=prefix
-$ME --INC=dir,dir,dir
-$ME --cache_directory=dir
-$ME [--process_verbose|--recurse_verbose|--cache_verbose|--summary]
-$ME [--separator=s|--column|--finish]
-$ME --recurse|--norecurse
-$ME [--help|--longhelp]
-__EOU__
-}
-
-sub help {
-    die short_help_string();
+sub short_help {
+    while (<DATA>) {
+        last if /^=head2 Usage/;
+    }
+    while (<DATA>) {
+        last if /^=head2/;
+        print;
+    }
+    exit(1);
 }
 
 sub long_help {
-    print short_help_string();
-    die <<__EOU__;
+    print <DATA>;
+    exit(1);
+}
 
-The ... is either a list of files, or --code='...', or --files_from_file=file,
-or --files_from_cache, or --files_from_system.
-
-If --code is used, the filename is faked to be '-' in the reports.
-The --files_from_file=file specifies a file to read the filenames
-from, filename per line.  If the filename is '-', STDIN is used.
-
-Note that the --code argument must be complete, e.g. 'use utf8;' must
-have the semicolon.  For convenience, a semicolon is automatically added
-unless there already is one, or the code argument ends in an end brace.
-This can be disabled with --noauto_semicolon.
-
-The --parse can be used to just parse the inputs (and possibly cache
-the results, if --cache_directory is specified) but not to output
-anything (except the --*verbose or --summary output).  One or more
-of --parse or one of the report options (--packages et cetera,
-read on) must be specified.
-
-An "inc" is a "file inclusion", any of the use/no/require/do.
-
-* --packages shows seen package statements, while the --modules shows
-  module names included via use/no/require.
-
-* --missing_modules (default: on) shows the missing modules (in addition
-  to warning about them during scan).  Use --nomissing_modules to suppress.
-
-* --parse_errors (default: on) shows the parse errors modules (in addition
-  to warning about them during scan).  Use --noparse_errors to suppress.
-
-* --subs_files, --packages_files, and --incs_files by default show only
-  the start line, with --finish they show also the finish, and with
-  --column also the column(s).  The --incs_chains only shows the start lines.
-
-* --incs_files shows only the first level, the --incs_chains shows the
-  full inclusion chains.  Warning: the number of inclusion chains can be
-  even for the simplest codes.  Enjoy responsibly.
-
-* --incs_chains_reverse instead of --incs_chains generates reversed
-  inclusion chains, for inspecting reverse dependencies.
-
-* --total_lines tells the total number of lines seen, while the
-  --files_lines tells the lines per file.
-
-* --files_counts and --modules_counts show how many times each file
-  or module is referred to (first-level).
-
-* --incs_deps shows what kind of tree node (root, branch, leaf, singleton)
-  each file is in the total dependency tree.  It does not attempt to draw
-  the actual tree graph.
-
-* --report_all turns on all the reports.  By default these reports go
-  to STDOUT, with --report_prefix you can direct them to files starting
-  with the specified prefix.  The report titles ("===...===") can be
-  turned off with --noreport_title.
-
-The --cache_directory=dir can be used to cache the PPI processing results
-under a directory.  This is usually much faster than processing the
-files from scratch with PPI.  For paranoia, the directory must exist.
-
-The --INC=dir,dir,dir can be used to specify an \@INC different from the
-standard one.  Note the comma-separation.
-
-The --separator default is the tabulator.
-
-The default is to recurse through use/no/require/do statements,
-use --norecurse to not to.
-
-The --summary (default: on) turns on summary report at the end.
-The --processverbose turns on display on processing progress.
-The --cacheverbose turns on verbose cache access.
-__EOU__
+sub man_help {
+    my $man_pipe = "| pod2man | nroff -man";
+    my $pager = $ENV{PAGER};
+    if (defined $pager) {
+    } else {
+        $pager = "less";
+    }
+    if ($pager =~ /less/) {
+        my $less_opts = $ENV{LESS} // "";
+        if ($less_opts !~ /-R/) {
+            $less_opts .= " -R"
+        }
+        $pager .= " $less_opts";
+    }
+    if (defined $pager) {
+        $man_pipe .= " | $pager";
+    }
+    if (open(my $fh, $man_pipe)) {
+        print { $fh } <DATA>;
+        close($fh);
+    }
+    exit(1);
 }
 
 my %OptDefault = (
@@ -125,45 +62,50 @@ my %OptDefault = (
 
 my %Opt = %OptDefault;
 
-help() unless GetOptions('files' => \$Opt{files},
-                         'subs' => \$Opt{subs},
-                         'packages' => \$Opt{packages},
-                         'modules' => \$Opt{modules},
-                         'missing_modules' => \$Opt{missing_modules},
-                         'parse_errors' => \$Opt{parse_errors},
-                         'total_lines' => \$Opt{total_lines},
-                         'files_lines' => \$Opt{files_lines},
-                         'subs_files' => \$Opt{subs_files},
-                         'packages_files' => \$Opt{packages_files},
-                         'incs_files' => \$Opt{incs_files},
-                         'incs_chains' => \$Opt{incs_chains},
-                         'incs_chains_reverse' => \$Opt{incs_chains_reverse},
-                         'files_counts' => \$Opt{files_counts},
-                         'modules_counts' => \$Opt{modules_counts},
-                         'incs_deps' => \$Opt{incs_deps},
-                         'parse' => \$Opt{parse},
-                         'report_all' => \$Opt{report_all},
-                         'report_prefix=s' => \$Opt{report_prefix},
-                         'INC=s' => \$Opt{INC},
-                         'cache_directory=s' => \$Opt{cache_directory},
-                         'code=s' => \$Opt{code},
-                         'auto_semicolon' => \$Opt{auto_semicolon},
-                         'files_from_file=s' => \$Opt{files_from_file},
-                         'files_from_cache' => \$Opt{files_from_cache},
-                         'files_from_system' => \$Opt{files_from_system},
-                         'process_verbose' => \$Opt{process_verbose},
-                         'recurse_verbose' => \$Opt{recurse_verbose},
-                         'cache_verbose' => \$Opt{cache_verbose},
-                         'summary' => \$Opt{summary},
-                         'separator=s' => \$Opt{separator},
-                         'recurse!' => \$Opt{recurse},
-                         'column' => \$Opt{column},
-                         'finish' => \$Opt{finish},
-                         'help' => \$Opt{help},
-                         'longhelp' => \$Opt{longhelp});
+short_help()
+    unless GetOptions('files' => \$Opt{files},
+                      'subs' => \$Opt{subs},
+                      'packages' => \$Opt{packages},
+                      'modules' => \$Opt{modules},
+                      'missing_modules' => \$Opt{missing_modules},
+                      'parse_errors' => \$Opt{parse_errors},
+                      'total_lines' => \$Opt{total_lines},
+                      'files_lines' => \$Opt{files_lines},
+                      'subs_files' => \$Opt{subs_files},
+                      'packages_files' => \$Opt{packages_files},
+                      'incs_files' => \$Opt{incs_files},
+                      'incs_chains' => \$Opt{incs_chains},
+                      'incs_chains_reverse' => \$Opt{incs_chains_reverse},
+                      'files_counts' => \$Opt{files_counts},
+                      'modules_counts' => \$Opt{modules_counts},
+                      'incs_deps' => \$Opt{incs_deps},
+                      'parse' => \$Opt{parse},
+                      'report_all' => \$Opt{report_all},
+                      'report_prefix=s' => \$Opt{report_prefix},
+                      'INC=s' => \$Opt{INC},
+                      'cache_directory=s' => \$Opt{cache_directory},
+                      'code=s' => \$Opt{code},
+                      'auto_semicolon' => \$Opt{auto_semicolon},
+                      'files_from_file=s' => \$Opt{files_from_file},
+                      'files_from_cache' => \$Opt{files_from_cache},
+                      'files_from_system' => \$Opt{files_from_system},
+                      'process_verbose' => \$Opt{process_verbose},
+                      'recurse_verbose' => \$Opt{recurse_verbose},
+                      'cache_verbose' => \$Opt{cache_verbose},
+                      'summary' => \$Opt{summary},
+                      'separator=s' => \$Opt{separator},
+                      'recurse!' => \$Opt{recurse},
+                      'column' => \$Opt{column},
+                      'finish' => \$Opt{finish},
+                      'help' => \$Opt{short_help},
+                      'short_help' => \$Opt{short_help},
+                      'long_help' => \$Opt{long_help},
+                      'man' => \$Opt{man_help},
+    );
 
-help() if $Opt{help};
-long_help() if $Opt{longhelp};
+short_help() if $Opt{short_help};
+long_help()  if $Opt{long_help};
+man_help()   if $Opt{man_help};
 
 my @ACTION = qw[files subs packages modules missing_modules parse_errors
                 subs_files packages_files files_lines total_lines
@@ -175,10 +117,10 @@ if ($Opt{report_all}) {
 }
 
 use List::Util qw[any];
-help() unless (any { $Opt{$_} }
-               grep { ! $OptDefault{$_} }
-               @ACTION) ||
-               $Opt{parse};
+short_help() unless (any { $Opt{$_} }
+                     grep { ! $OptDefault{$_} }
+                     @ACTION) ||
+                     $Opt{parse};
 
 $Opt{separator} = "\t" if $Opt{separator} eq '\t';  # Nicer to type in shells.
 
@@ -423,3 +365,188 @@ if ($Opt{summary}) {
 }
 
 exit(0);
+
+__DATA__
+=pod
+
+=head1 NAME
+
+ppixref - frontend for PPI::Xref for indexing and querying Perl code
+
+=head2 Usage
+
+$ME [--files|--subs|--packages|--modules|--missing_modules|--parse_errors] ...
+
+$ME [--subs_files|--packages_files] ...
+
+$ME [--files_lines|--total_lines] ...
+
+$ME [--incs_files|--incs_chains|--incs_chains_reverse|--incs_deps] ...
+
+$ME [--files_founts|--modules_counts] ...
+
+$ME [--code=... [--auto_semicolon|--noauto_semicolon]]
+
+$ME --parse
+
+$ME --report_all
+
+$ME --report_title --noreport_title
+
+$ME --report_prefix=prefix
+
+$ME --INC=dir,dir,dir
+
+$ME --cache_directory=dir
+
+$ME [--process_verbose|--recurse_verbose|--cache_verbose|--summary]
+
+$ME [--separator=s|--column|--finish]
+
+$ME --recurse|--norecurse
+
+$ME [--help|--short_help|--long_help]
+
+=head2 Description
+
+The ... in the usage message is either a list of files, or
+--code='...', or --files_from_file=file, or --files_from_cache,
+or --files_from_system (the @INC).
+
+If --code is used, the filename is faked to be '-' in the reports.
+The --files_from_file=file specifies a file to read the filenames
+from, filename per line.  If the filename is '-', STDIN is used.
+
+Note that the --code argument must be complete, e.g. 'use utf8;' must
+have the semicolon.  For convenience, a semicolon is automatically added
+unless there already is one, or the code argument ends in an end brace.
+This can be disabled with --noauto_semicolon.
+
+The --parse can be used to just parse the inputs (and possibly cache
+the results, if --cache_directory is specified) but not to output
+anything (except the --*verbose or --summary output).  One or more
+of --parse or one of the report options (--packages et cetera,
+read on) must be specified.
+
+An "inc" is a "file inclusion", any of the C<use>/C<no>/C<require>/C<do>.
+
+=over 4
+
+=item *
+
+--packages shows seen package statements, while the --modules shows
+module names included via use/no/require.
+
+=item *
+
+--missing_modules (default: on) shows the missing modules (in addition
+  to warning about them during scan).  Use --nomissing_modules to suppress.
+
+=item *
+
+--parse_errors (default: on) shows the parse errors modules (in addition
+  to warning about them during scan).  Use --noparse_errors to suppress.
+
+=item *
+
+--subs_files, --packages_files, and --incs_files by default show only
+  the start line, with --finish they show also the finish, and with
+  --column also the column(s).  The --incs_chains only shows the start lines.
+
+=item *
+
+--incs_files shows only the first level, the --incs_chains shows the
+  full inclusion chains.  Warning: the number of inclusion chains can be
+  even for the simplest codes.  Enjoy responsibly.
+
+=item *
+
+--incs_chains_reverse instead of --incs_chains generates reversed
+  inclusion chains, for inspecting reverse dependencies.
+
+=item *
+
+--total_lines tells the total number of lines seen, while the
+  --files_lines tells the lines per file.
+
+=item *
+
+--files_counts and --modules_counts show how many times each file
+  or module is referred to (first-level).
+
+=item *
+
+--incs_deps shows what kind of tree node (root, branch, leaf, singleton)
+  each file is in the total dependency tree.  It does not attempt to draw
+  the actual tree graph.
+
+=item *
+
+--report_all turns on all the reports.  By default these reports go
+  to STDOUT, with --report_prefix you can direct them to files starting
+  with the specified prefix.  The report titles ("===...===") can be
+  turned off with --noreport_title.
+
+=item *
+
+--cache_directory=dir can be used to cache the PPI processing results
+under a directory.  This is usually much faster than processing the
+files from scratch with PPI.  For paranoia, the directory must exist.
+
+=item *
+
+--INC=dir,dir,dir can be used to specify an \@INC different from the
+standard one.  Note the comma-separation.
+
+=item *
+
+--separator default is the tabulator.
+
+=item *
+
+The default is to recurse through use/no/require/do statements,
+use --norecurse to not to.
+
+=item *
+
+The --summary (default: on) turns on summary report at the end.
+
+
+=item *
+
+The --processverbose turns on display on processing progress.
+
+=item *
+
+The --cacheverbose turns on verbose cache access.
+
+=back
+
+=head2 Common warnings
+
+Certain warnings happen reasonably often, but the reasonable
+default action is just to live with them.  In certain cases
+one could report the issue as a PPI issue.
+
+=over 4
+
+=item *
+
+PPI::Xref::__process_id: warning: Failed to find file ... in ...
+
+If the file not found is something that depends on runtime values
+(e.g. some variable), PPI::Xref is not going to find it.
+
+=item *
+
+PPI::Xref::__parse_error: PPI::Document incomplete in ...
+
+PPI::Xref checks whether a file was parsed as 'complete', meaning that
+all braces and parentheses and similar were balanced.  If there was a
+parsing error in the file, completeness will not happen.  This one you
+might want to report as a bug in PPI itself since PPI should be able
+to parse any valid Perl code.
+
+=back
+
+=cut
