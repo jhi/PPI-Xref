@@ -63,6 +63,7 @@ short_help()
                       'files_from_file=s' => \$Opt{files_from_file},
                       'files_from_cache' => \$Opt{files_from_cache},
                       'files_from_system' => \$Opt{files_from_system},
+                      'cache_read_only' => \$Opt{cache_read_only},
                       'process_verbose' => \$Opt{process_verbose},
                       'recurse_verbose' => \$Opt{recurse_verbose},
                       'cache_verbose' => \$Opt{cache_verbose},
@@ -109,6 +110,7 @@ my $xref_opt = {
    process_verbose => $Opt{process_verbose},
    recurse_verbose => $Opt{recurse_verbose},
    cache_verbose => $Opt{cache_verbose},
+   cache_read_only => $Opt{cache_read_only},
    recurse => $Opt{recurse},
 };
 
@@ -466,6 +468,14 @@ module names included via use/no/require.
 --cache_directory=dir can be used to cache the PPI processing results
 under a directory.  This is usually much faster than processing the
 files from scratch with PPI.  For paranoia, the directory must exist.
+
+=item *
+
+--cache_read_only means that the cache files are read as-is, but no
+cache writes happen.  (As optimization, neither will any
+(re)processing of files happen, because where would we put the
+results.)  This option is useful if you just want to query the
+currently computed (and hopefully cached) results.
 
 =item *
 

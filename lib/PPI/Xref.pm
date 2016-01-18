@@ -19,6 +19,7 @@ my %CTOR_OPTS =
     map { $_ => 1} qw/process_verbose cache_verbose recurse_verbose
                       recurse INC
                       cache_directory
+                      cache_read_only
                       __allow_relative/;
 
 my $HASHALGO = 'sha1';
@@ -44,7 +45,8 @@ sub new {
     # - recurse_verbose: for recurse, show revisits
     # - INC: an aref for a custom @INC
     # - recurse: or not (default: yes)
-    # - cache_directory: directory where to cache the results
+    # - cache_directory: directory where the cache is
+    # - cache_read_only: only read the cache
 
     $opt->{recurse} //= 1;
 
@@ -364,6 +366,8 @@ sub __encode_to_file {
 sub __write_cachefile {
     my ($self, $cache_filename, $hash_current, $file_id, $file_mtime) = @_;
 
+    return if $self->{opt}{cache_read_only};
+
     if ($self->{opt}{cache_verbose}) {
         print "$Sub: writing $cache_filename\n";
     }
@@ -478,6 +482,8 @@ sub __check_cached {
 sub __to_cache {
     my ($self, $cache_filename, $hash_current, $file_id, $file_mtime) = @_;
 
+    return if $self->{opt}{cache_read_only};
+
     my $had_cache = -f $cache_filename;
     if ($self->__write_cachefile($cache_filename, $hash_current,
                                  $file_id, $file_mtime)) {
@@ -585,7 +591,7 @@ sub __process_file {
             $self->__import_cached($file_id, $cached);
             $self->__process_cached_incs($file_id, $process_depth);
             $self->{__cachereads}++;
-        } else {
+        } elsif (!$self->{opt}{cache_read_only}) {
             my $doc = $self->__doc_create($arg, $file, $file_id);
             return unless defined $doc;
             $self->__clear_cached($file_id);
@@ -594,7 +600,8 @@ sub __process_file {
         }
         if (defined $cache_filename &&
             defined $hash_current &&
-            !$hash_match) {
+            !$hash_match &&
+            !$self->{opt}{cache_read_only}) {
             if ($self->__to_cache($cache_filename, $hash_current,
                                   $file_id, $file_mtime)) {
                 if (!$hash_match && defined $cached) {
