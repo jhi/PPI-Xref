@@ -530,6 +530,13 @@ might want to report as a bug in PPI itself since PPI should be able
 to parse any valid Perl code.  Please distill the failure to the
 smallest possible snippet before reporting it.
 
+=item *
+
+PPI::Xref::__parse_error: PPI::Document creation failed in ...
+
+The said file could not be parsed at all by PPI.  Are you certain
+it contains valid Perl code?
+
 =back
 
 =cut
