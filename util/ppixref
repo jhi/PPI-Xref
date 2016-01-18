@@ -539,6 +539,14 @@ If the file not found is something that depends on runtime values
 
 =item *
 
+PPI::Xref::__process_id: warning: Failed to find module '...' in ...
+
+If the module is somehow optional, for example dependent on the
+operating system or not a core module, it may not be found on every
+installation.
+
+=item *
+
 PPI::Xref::__parse_error: PPI::Document incomplete in ...
 
 PPI::Xref checks whether a file was parsed as 'complete', meaning that
