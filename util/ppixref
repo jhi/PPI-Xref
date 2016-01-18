@@ -11,44 +11,18 @@ my $ME = basename($0);
 use Getopt::Long;
 Getopt::Long::Configure(qw[no_auto_abbrev]);
 
+use PPI::Xref::Help;
+
 sub short_help {
-    while (<DATA>) {
-        last if /^=head2 Usage/;
-    }
-    while (<DATA>) {
-        last if /^=head2/;
-        print;
-    }
-    exit(1);
+    PPI::Xref::Help::short_help($ME, *DATA);
 }
 
 sub long_help {
-    print <DATA>;
-    exit(1);
+    PPI::Xref::Help::long_help($ME, *DATA);
 }
 
 sub man_help {
-    my $man_pipe = "| pod2man | nroff -man";
-    my $pager = $ENV{PAGER};
-    if (defined $pager) {
-    } else {
-        $pager = "less";
-    }
-    if ($pager =~ /less/) {
-        my $less_opts = $ENV{LESS} // "";
-        if ($less_opts !~ /-R/) {
-            $less_opts .= " -R"
-        }
-        $pager .= " $less_opts";
-    }
-    if (defined $pager) {
-        $man_pipe .= " | $pager";
-    }
-    if (open(my $fh, $man_pipe)) {
-        print { $fh } <DATA>;
-        close($fh);
-    }
-    exit(1);
+    PPI::Xref::Help::man_help($ME, *DATA);
 }
 
 my %OptDefault = (

@@ -3,6 +3,7 @@ MANIFEST
 Makefile.PL
 README
 lib/PPI/Xref.pm
+lib/PPI/Xref/Help.pm
 t/00_use.t
 t/01_new.t
 t/02_inc.t

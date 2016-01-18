@@ -24,50 +24,12 @@ my %Opt = (
 our $MAX_PAD_SEC = 6 * 3600;  # 6h
 our $MIN_PAD_SEC = 15;
 
-sub usage {
-    die <<__EOU__
-$ME: Usage:
-$ME --cache_directory=dir [--update|--rebuild [--force]] git:dir dir ...
-$ME [--since=[sha1|'n h'|'n min'|'n s']|--time_padding=1.05|--pull] git:dir
-$ME --process_verbose|--recurse_verbose|--cache_verbose ...
-$ME --help
+sub short_help {
+    PPI::Xref::Help::short_help($ME, *DATA);
+}
 
-The directories must either be git repository roots:
-
- git:/dir/...
-
-or a plain directory
-
-  /dir/...
-
-If the directory is a git directory, 'git pull' is executed in it
-before looking for changes, use --nopull not to.
-
-Examples:
-$ME --since=cafe0123
-$ME --since='24 h'
-$ME --since='3 min' --time_padding=1.0  # exactly 3 minutes
-
-The default is --since=$Opt{since}, but with the time padding that ends up being more.
-The --since=time are first converted to seconds, and then multiplied by $Opt{time_padding}.
-
-At most the time padding increases the since value by $MAX_PAD_SEC seconds,
-and at least by $MIN_PAD_SEC seconds.
-
-The padding is done to paper over processing overlap, so that one can
-e.g. daily reprocess and not miss things.  This is obviously an ugly
-hack: for git repositories a better way is to use the exact checksums.
-
-By default only the files requiring attention are listed, with "R" for
-refreshes (modified or addded), and "D" for deletes.  To really update
-the ppixref cache you need
-
---cache_directory=dir --update
-
-which will reprocess the modified files, process the added files, and
-remove the cache files of deleted files.
-
-__EOU__
+sub man_help {
+    PPI::Xref::Help::man_help($ME, *DATA);
 }
 
 sub parse_since {
@@ -88,7 +50,7 @@ sub parse_since {
     }
 }
 
-usage()
+short_help()
     unless GetOptions(
         'since=s'           => \$Opt{since},
         'time_padding=f'    => \$Opt{time_padding},
@@ -102,8 +64,10 @@ usage()
         'cache_verbose'     => \$Opt{cache_verbose},
         'force'             => \$Opt{force},
         'help'              => \$Opt{help},
+        'man'               => \$Opt{man},
     );
-usage() if $Opt{help};
+short_help() if $Opt{help};
+man_help()   if $Opt{man};
 
 unless ($Opt{update} ^ $Opt{rebuild}) {
     die "$ME: Need exactly one of --update and --rebuild\n";
@@ -299,3 +263,71 @@ printf("$ME: cache reads=%s writes=%s creates=%d updates=%d deletes=%s\n",
        $xref->cache_deletes || 0);
 
 exit(0);
+
+__DATA__
+=pod
+
+=head1 NAME
+
+ppixref-cache-update
+
+=head2 Usage
+
+$ME --cache_directory=dir [--update|--rebuild [--force]] git:dir dir ...
+$ME [--since=[sha1|'n h'|'n min'|'n s']|--time_padding=1.05] git:dir
+$ME [--pull|--nopull] git:dir
+$ME --files_from_system
+$ME --process_verbose|--recurse_verbose|--cache_verbose ...
+$ME --help
+
+=head2 Description
+
+The directories must either be git repository roots:
+
+ git:/dir/...
+
+or a plain directory
+
+  /dir/...
+
+If the directory is a git directory, 'git pull' is executed in it
+before looking for changes, use --nopull not to.
+
+=over 4
+
+=item --since
+
+Examples:
+
+$ME --since=cafe0123
+$ME --since='24 h'
+$ME --since='3 min' --time_padding=1.0  # exactly 3 minutes
+
+The default is --since=$Opt{since}, but with the time padding that
+ends up being more.  The --since=time are first converted to seconds,
+and then multiplied by $Opt{time_padding}.
+
+At most the time padding increases the since value by $MAX_PAD_SEC seconds,
+and at least by $MIN_PAD_SEC seconds.
+
+The padding is done to paper over processing overlap, so that one can
+e.g. daily reprocess and not miss things.  This is obviously an ugly
+hack: for git repositories a better way is to use the exact checksums.
+
+By default only the files requiring attention are listed, with "R" for
+refreshes (modified or addded), and "D" for deletes.  To really update
+the ppixref cache you need
+
+--cache_directory=dir --update
+
+which will reprocess the modified files, process the added files, and
+remove the cache files of deleted files.
+
+=item *
+
+--files_from_system will add all the directories from the library
+directories, which default to the @INC.
+
+=back
+
+__EOU__
