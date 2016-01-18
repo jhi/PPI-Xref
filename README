@@ -3,8 +3,9 @@ PPI::Xref is a Perl module for generating cross-references of Perl code.
 You do need PPI and Sereal installed.
 
 The Perl code being parsed is not executed, so any fancy runtime
-(or compile-time) trickery is not detected.  This is both a bug and
-a feature.
+(or compile-time) trickery is not detected.  This includes things
+like string evals, importing of symbols, and run-time inclusion of
+files.  This is both a bug and a feature.
 
 At the moment, any sub definitions are detected (but not declarations),
 and use/no/require/do are recursively followed.
