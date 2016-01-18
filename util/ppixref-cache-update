@@ -57,6 +57,7 @@ short_help()
         'pull'              => \$Opt{pull},
         'cache_directory=s' => \$Opt{cache_directory},
         'files_from_system' => \$Opt{files_from_system},
+        'files_from_cache'  => \$Opt{files_from_cache},
         'update'            => \$Opt{update},
         'rebuild'           => \$Opt{rebuild},
         'process_verbose'   => \$Opt{process_verbose},
@@ -134,6 +135,10 @@ my $cwd = getcwd();
 if ($Opt{files_from_system}) {
     unshift @ARGV,
       grep { File::Spec->file_name_is_absolute($_) } @{ $xref->INC };
+}
+
+if ($Opt{files_from_cache}) {
+    # Friendly no-op, for consistency with ppixref.
 }
 
 for my $arg (@ARGV) {
