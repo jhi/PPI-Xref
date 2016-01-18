@@ -553,7 +553,8 @@ PPI::Xref checks whether a file was parsed as 'complete', meaning that
 all braces and parentheses and similar were balanced.  If there was a
 parsing error in the file, completeness will not happen.  This one you
 might want to report as a bug in PPI itself since PPI should be able
-to parse any valid Perl code.
+to parse any valid Perl code.  Please distill the failure to the
+smallest possible snippet before reporting it.
 
 =back
 
