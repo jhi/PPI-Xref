@@ -1596,7 +1596,7 @@ sub looks_like_cache_file {
 
     return 0 if $file =~ m{\.\.};
 
-    return $file =~ m{^\Q$cache_directory\E/.+\Q$CACHE_EXT\E$};
+    return $file =~ m{^\Q$cache_directory\E[/\\].+\Q$CACHE_EXT\E$};
 }
 
 sub cache_delete {
