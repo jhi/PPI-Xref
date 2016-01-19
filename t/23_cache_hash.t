@@ -19,7 +19,7 @@ ok($xref->process("$lib/B.pm"), "process file");
 
 my $cachefile = $xref->__cache_filename("$lib/B.pm");
 
-cachefile_sanity($cachefile, $cache_directory);
+cachefile_sanity($xref, $cachefile, $cache_directory);
 
 # Using the internal utilities here for testing is a bit evil, but
 # reimplementing the code here for testing would be even more evil.

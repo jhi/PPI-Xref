@@ -23,7 +23,7 @@ ok($xref->process("$lib/B.pm"), "process file");
 
 my $cachefile = $xref->__cache_filename("$lib/B.pm");
 
-cachefile_sanity($cachefile, $cache_directory);
+cachefile_sanity($xref, $cachefile, $cache_directory);
 
 is($xref->__unparse_cache_filename($cachefile), "$lib/B.pm", "unparse");
 

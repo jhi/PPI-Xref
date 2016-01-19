@@ -43,11 +43,12 @@ sub warner {
 }
 
 sub cachefile_sanity {
-  my ($cachefile, $cache_directory) = @_;
+  my ($xref, $cachefile, $cache_directory) = @_;
   ok(-s $cachefile, "non-empty cachefile exists");
   like($cachefile, qr/\.cache$/, "cachefile ends in .cache");
   like($cachefile, qr/\Q$cache_directory\E/,
        "cachefile path contains the cache directory");
+  $xref->looks_like_cache_file($cachefile);
 }
 
 1;

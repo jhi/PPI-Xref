@@ -27,7 +27,7 @@ close($fh);
 
 ok($xref1->process("$pm"), "process file");
 
-cachefile_sanity($xref1->__cache_filename($pm), $cache_directory);
+cachefile_sanity($xref1, $xref1->__cache_filename($pm), $cache_directory);
 
 is($xref1->docs_created, 1, "docs created");
 is($xref1->cache_reads, 0, "no reads from cache");

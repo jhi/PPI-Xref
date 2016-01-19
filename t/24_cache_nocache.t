@@ -32,8 +32,9 @@ is($lib1, $lib0, "the same lib");
 
 ok($xref1->process("$lib1/B.pm"), "process file");
 
-cachefile_sanity($xref1->__cache_filename("$lib1/B.pm"),
-                $cache_directory);
+cachefile_sanity($xref1,
+                 $xref1->__cache_filename("$lib1/B.pm"),
+                 $cache_directory);
 
 is_deeply([$xref1->subs], [$xref0->subs], "subs");
 is_deeply([$xref1->files], [$xref0->files], "files");

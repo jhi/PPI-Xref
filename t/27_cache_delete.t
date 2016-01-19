@@ -21,8 +21,8 @@ ok($xref->process("$lib/B.pm"), "process file");
 my $cache_B = $xref->__cache_filename("$lib/B.pm");
 my $cache_A = $xref->__cache_filename("$lib/A.pm");
 
-cachefile_sanity($cache_A, $cache_directory);
-cachefile_sanity($cache_B, $cache_directory);
+cachefile_sanity($xref, $cache_A, $cache_directory);
+cachefile_sanity($xref, $cache_B, $cache_directory);
 
 is($xref->cache_delete($cache_B), 1, "cache_delete cachefile for B");
 ok(!-e $cache_B, "the cachefile for B is gone");
