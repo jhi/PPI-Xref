@@ -9,8 +9,14 @@ plan(skip_all => "does not look like unixy enough") unless -x '/bin/ls';
 
 my $fh;
 
+use File::Temp;
+
+my $tempdir = File::Temp->newdir();  # Nuked at exit.
+
+print "# tempdir = $tempdir\n";
+
 ok(open($fh,
-        "$^X -Ilib util/ppixref --code='use utf8' --files --subs --subs_files --incs_files |"),
+        "$^X -Ilib util/ppixref --code='use utf8' --files --subs --subs_files --incs_files --cache_directory=$tempdir |"),
    "start ppixref");
 
 my %files;
