@@ -123,6 +123,8 @@ if (defined $Opt{cache_directory}) {
     warn "$ME: Not a read-write directory --cache_directory='$Opt{cache_directory}'\n";
   }
   $xref_opt->{cache_directory} = $Opt{cache_directory};
+} else {
+    warn "$ME: No --cache_directory specified\n";
 }
 
 my $xref = PPI::Xref->new($xref_opt);
@@ -157,11 +159,16 @@ if (defined $Opt{files_from_file}) {
         help();
     }
 }
+
+my $processed;
+
 if (defined $Opt{files_from_cache}) {
     $xref->process_files_from_cache();
+    $processed++;
 }
 if (defined $Opt{files_from_system}) {
     $xref->process_files_from_system();
+    $processed++;
 }
 if (defined $Opt{code}) {
     if ($Opt{auto_semicolon}) {
@@ -170,9 +177,20 @@ if (defined $Opt{code}) {
         }
     }
     $xref->process(\$Opt{code});
+    $processed++;
 }
 if (@ARGV) {
     $xref->process(@ARGV);
+    $processed++;
+}
+unless ($processed) {
+    die <<__EOF__
+$ME: Nothing processed: use one of more of:
+--code=...
+--files_from_system
+--files_from_cache
+filename arguments
+__EOF__
 }
 
 my $t1 = Times->get();
