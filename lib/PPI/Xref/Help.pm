@@ -1,7 +1,7 @@
 package PPI::Xref::Help;
 
 sub short_help {
-    my ($fh) = @_;
+    my ($name, $fh) = @_;
     while (<$fh>) {
         last if /^=head2 Usage/;
     }
@@ -13,7 +13,7 @@ sub short_help {
 }
 
 sub long_help {
-    my ($fh) = @_;
+    my ($name, $fh) = @_;
     print <$fh>;
     exit(1);
 }
