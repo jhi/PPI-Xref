@@ -24,6 +24,8 @@ my %Opt = (
 our $MAX_PAD_SEC = 6 * 3600;  # 6h
 our $MIN_PAD_SEC = 15;
 
+use PPI::Xref::Help;
+
 sub short_help {
     PPI::Xref::Help::short_help($ME, *DATA);
 }
