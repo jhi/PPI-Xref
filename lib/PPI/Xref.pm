@@ -20,6 +20,7 @@ my %CTOR_OPTS =
                       recurse INC
                       cache_directory
                       cache_read_only
+                      cache_portable_filenames
                       __allow_relative/;
 
 my $HASHALGO = 'sha1';
@@ -47,6 +48,7 @@ sub new {
     # - recurse: or not (default: yes)
     # - cache_directory: directory where the cache is
     # - cache_read_only: only read the cache
+    # - cache_portable_filanmes: avoid multiple dots in cache filenames
 
     $opt->{recurse} //= 1;
 
@@ -244,11 +246,13 @@ sub __shadow_cache_filename {
         File::Spec->rel2abs($filename);
     my ($redir, $file) = $self->__safe_dir_and_file_flatten_volume($absfile);
 
-    # For portable filenames, we cannot just keep on
-    # appending filename extensions with dots, and we
-    # are going to append the cache filename extension.
-    # So we mangle the .pm or .pl as _pm and _pl.
-    $file =~ s{\.(p[ml])$}{_$1};
+    if ($self->{opt}{cache_portable_filenames}) {
+        # For portable filenames, we cannot just keep on
+        # appending filename extensions with dots, and we
+        # are going to append the cache filename extension.
+        # So we mangle the .pm or .pl as _pm and _pl.
+        $file =~ s{\.(p[ml])$}{_$1};
+    }
 
     return File::Spec->catfile($shadowdir, $redir, $file . $CACHE_EXT);
 }
@@ -1610,7 +1614,7 @@ sub cache_delete {
     for my $file (@_) {
         if (!File::Spec->file_name_is_absolute($file) ||
             $file =~ m{\.\.} ||
-            ($file !~ m{_p[ml](?:\Q$CACHE_EXT\E)?$} &&
+            ($file !~ m{[._]p[ml](?:\Q$CACHE_EXT\E)?$} &&
              $file !~ m{.p[ml]$})) {
             # Paranoia check one.
             warn "$Sub: Skipping unexpected file: '$file'\n";

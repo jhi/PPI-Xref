@@ -110,6 +110,8 @@ my $xref = PPI::Xref->new({cache_directory => $cache_directory,
                            process_verbose => $Opt{process_verbose},
                            recurse_verbose => $Opt{recurse_verbose},
                            cache_verbose => $Opt{cache_verbose},
+                           cache_portable_filenames =>
+                               $Opt{cache_portable_filenames},
                           });
 
 $xref->find_cache_files(\%Cache);
