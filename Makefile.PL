@@ -11,5 +11,9 @@ WriteMakefile(
                            "List::Util" => '1.33',  # any()
                          },
     TEST_REQUIRES     => { "Test::More" => 0 },
-    EXE_FILES         => [ qw[util/ppixref util/ppixref-cache-update] ],
+    EXE_FILES         => [ qw[
+                              util/ppixref
+                              util/ppixref-cache-update
+                              util/ppixref-cachefile-dump
+                              ] ],
 );

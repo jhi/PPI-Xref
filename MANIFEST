@@ -46,3 +46,4 @@ t/lib/g.pl
 t/util.pl
 util/ppixref
 util/ppixref-cache-update
+util/ppixref-cachefile-dump
