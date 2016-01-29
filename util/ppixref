@@ -41,8 +41,8 @@ short_help()
                       'subs' => \$Opt{subs},
                       'packages' => \$Opt{packages},
                       'modules' => \$Opt{modules},
-                      'missing_modules' => \$Opt{missing_modules},
-                      'parse_errors' => \$Opt{parse_errors},
+                      'missing_modules!' => \$Opt{missing_modules},
+                      'parse_errors!' => \$Opt{parse_errors},
                       'total_lines' => \$Opt{total_lines},
                       'files_lines' => \$Opt{files_lines},
                       'subs_files' => \$Opt{subs_files},
@@ -56,10 +56,11 @@ short_help()
                       'parse' => \$Opt{parse},
                       'report_all' => \$Opt{report_all},
                       'report_prefix=s' => \$Opt{report_prefix},
+                      'report_title!' => \$Opt{report_title},
                       'INC=s' => \$Opt{INC},
                       'cache_directory=s' => \$Opt{cache_directory},
                       'code=s' => \$Opt{code},
-                      'auto_semicolon' => \$Opt{auto_semicolon},
+                      'auto_semicolon!' => \$Opt{auto_semicolon},
                       'files_from_file=s' => \$Opt{files_from_file},
                       'files_from_cache' => \$Opt{files_from_cache},
                       'files_from_system' => \$Opt{files_from_system},
@@ -205,7 +206,7 @@ sub emit {
     } else {
         $fh = *STDOUT;
     }
-    my $report_title = $Opt{report_title};;
+    my $report_title = $Opt{report_title};
     if (($opt eq 'missing_modules' && !$xref->missing_modules) ||
         ($opt eq 'parse_errors' && !$xref->parse_errors_files)) {
         $report_title = 0;
